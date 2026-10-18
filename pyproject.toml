@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pymon"
+version = "0.1.0"
+description = "A Linux system monitor TUI built with psutil and Textual."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "pymon" }]
+dependencies = [
+    "psutil>=5.9",
+    "textual>=0.50",
+]
+
+[project.optional-dependencies]
+gpu = ["nvidia-ml-py>=12.0"]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+    "pyright>=1.1",
+]
+
+[project.scripts]
+pymon = "pymon.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
