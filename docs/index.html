@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pymon — Linux System Monitor TUI</title>
+<meta name="description" content="A beautiful, fast Linux system monitor TUI built with psutil and Textual. CPU, memory, disk, network, processes, sensors, GPU — all in one terminal dashboard.">
+<style>
+:root{
+  --bg:#000000;--fg:#cccccc;--title:#eeeeee;--green:#77ca9b;--warn:#cbc06c;--red:#dc4c4c;
+  --blue:#4897d4;--muted:#555555;--surface:#111111;--border:#333333;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,monospace;background:var(--bg);color:var(--fg);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:1120px;margin:0 auto;padding:0 24px}
+nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+nav .container{display:flex;align-items:center;justify-content:space-between;height:56px}
+.logo{font-weight:700;color:var(--title);font-size:18px}
+.logo span{color:var(--green)}
+.navlinks{display:flex;gap:24px;font-size:14px}
+.navlinks a{color:var(--fg)}
+.cta-nav{background:var(--green);color:#000;padding:8px 16px;border-radius:6px;font-weight:700;font-size:13px}
+.cta-nav:hover{text-decoration:none;opacity:.9}
+.hero{padding:96px 0 64px;text-align:center}
+.hero h1{font-size:56px;font-weight:800;color:var(--title);letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px}
+.hero h1 .accent{color:var(--green)}
+.hero p{font-size:20px;color:var(--fg);max-width:720px;margin:0 auto 32px}
+.hero .buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:8px;font-weight:700;font-size:15px;border:1px solid var(--border);transition:all .15s}
+.btn-primary{background:var(--green);color:#000;border-color:var(--green)}
+.btn-primary:hover{opacity:.9;text-decoration:none}
+.btn-ghost{background:transparent;color:var(--fg)}
+.btn-ghost:hover{border-color:var(--fg);text-decoration:none}
+.trust{margin-top:24px;font-size:13px;color:var(--muted)}
+.trust span{color:var(--green)}
+.terminal{margin:48px auto 0;max-width:920px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.terminal-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:#0a0a0a}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot.r{background:#dc4c4c}.dot.y{background:#cbc06c}.dot.g{background:#77ca9b}
+.terminal-title{margin-left:8px;font-size:12px;color:var(--muted)}
+.terminal-body{padding:16px;font-size:13px;line-height:1.5;overflow-x:auto;white-space:pre;color:var(--fg)}
+.terminal-body .g{color:var(--green)}.terminal-body .y{color:var(--warn)}.terminal-body .r{color:var(--red)}.terminal-body .b{color:var(--blue)}.terminal-body .m{color:var(--muted)}.terminal-body .t{color:var(--title);font-weight:700}
+section{padding:80px 0}
+section h2{font-size:36px;font-weight:800;color:var(--title);text-align:center;margin-bottom:12px;letter-spacing:-1px}
+section .sub{font-size:16px;color:var(--muted);text-align:center;max-width:640px;margin:0 auto 48px}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;transition:border-color .15s}
+.feature:hover{border-color:var(--green)}
+.feature .icon{font-size:24px;margin-bottom:12px}
+.feature h3{color:var(--title);font-size:16px;margin-bottom:8px;font-weight:700}
+.feature p{font-size:14px;color:var(--fg)}
+.install{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;max-width:760px;margin:0 auto}
+.install h3{color:var(--title);margin-bottom:16px;font-size:18px}
+.code{background:#0a0a0a;border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;overflow-x:auto;margin-bottom:12px}
+.code .prompt{color:var(--green)}
+.code .comment{color:var(--muted)}
+.kbd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:760px;margin:32px auto 0}
+.kbd{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px}
+.kbd kbd{background:#0a0a0a;border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:var(--green);min-width:32px;text-align:center}
+.kbd span{font-size:13px;color:var(--fg)}
+.faq{max-width:760px;margin:0 auto}
+.faq details{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;padding:16px}
+.faq summary{cursor:pointer;color:var(--title);font-weight:700;font-size:15px;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq details p{margin-top:12px;font-size:14px;color:var(--fg)}
+.cta-section{text-align:center;padding:96px 0;background:linear-gradient(180deg,transparent,rgba(119,202,155,.05))}
+.cta-section h2{margin-bottom:16px}
+.cta-section p{color:var(--muted);margin-bottom:32px}
+footer{border-top:1px solid var(--border);padding:32px 0;color:var(--muted);font-size:13px}
+footer .container{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+@media (max-width:768px){
+  .hero h1{font-size:36px}
+  .features{grid-template-columns:1fr}
+  .kbd-grid{grid-template-columns:1fr}
+  .navlinks{display:none}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="container">
+    <div class="logo">py<span>mon</span></div>
+    <div class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#keys">Keys</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="cta-nav" href="https://github.com/kenjaku-dev/pymon">GitHub</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <h1>Monitor your Linux box<br><span class="accent">without leaving the terminal.</span></h1>
+    <p>pymon is a beautiful, fast system monitor TUI built with psutil and Textual. CPU, memory, disk, network, processes, sensors and GPU — in one dashboard.</p>
+    <div class="buttons">
+      <a class="btn btn-primary" href="#install">Install in 30 seconds</a>
+      <a class="btn btn-ghost" href="https://github.com/kenjaku-dev/pymon">View on GitHub</a>
+    </div>
+    <div class="trust">Open source · MIT licensed · <span>Python 3.12+</span> · Linux only</div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="terminal-title">pymon — overview</span>
+      </div>
+      <div class="terminal-body"><span class="t">╭─┐cpu┌────────────────────────────────────────────────────────╮</span>
+<span class="g">  CPU  12.4%  ██████████░░░░░░░░░░</span>   <span class="m">freq 3600 MHz   temp 48.0°C</span>
+<span class="m">  c0  14.2% ██████░░░░   c1  10.1% █████░░░░░</span>
+<span class="m">  c2  13.8% ██████░░░░   c3  11.5% █████░░░░░</span>
+<span class="t">╰──────────────────────────────────────────────────────────────╯</span>
+<span class="t">╭─┐mem┌─────────────────────╮</span>  <span class="t">╭─┐disk┌────────────────────╮</span>  <span class="t">╭─┐net┌────────────────────╮</span>
+<span class="g">  RAM  34.2%  ████████░░░░░░░░</span>  <span class="m">  /  (sda2, btrfs)</span>       <span class="m">  eth0 (up)</span>
+<span class="m">  5.4 GiB / 16.0 GiB avail</span>   <span class="m">  42%  ████████░░  80G/200G</span>  <span class="m">  ↓ 1.2 MB/s   ↑ 340 KB/s</span>
+<span class="m">  SWAP  2.1%  █░░░░░░░░░░░░░░░</span>  <span class="m">  /home  28%  █████░░  40G/150G</span>  <span class="m">  rx 1.4 GB  tx 88 MB</span>
+<span class="t">╰────────────────────────────╯</span>  <span class="t">╰────────────────────────────╯</span>  <span class="t">╰────────────────────────────╯</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <h2>Everything you need, in one screen</h2>
+    <p class="sub">A dense, btop-inspired dashboard. Every metric colored by severity. Zero wasted space.</p>
+    <div class="features">
+      <div class="feature"><div class="icon">📊</div><h3>CPU</h3><p>Overall + per-core bars, frequency, temperature, load average. Gradient green→yellow→red by usage.</p></div>
+      <div class="feature"><div class="icon">🧠</div><h3>Memory</h3><p>RAM and swap with used/available/total. Threshold-colored bars.</p></div>
+      <div class="feature"><div class="icon">💾</div><h3>Disk</h3><p>Physical partitions only, with device, fstype, usage bars and live I/O rates.</p></div>
+      <div class="feature"><div class="icon">🌐</div><h3>Network</h3><p>Per-interface rx/tx rates and totals. Loopback included (configurable).</p></div>
+      <div class="feature"><div class="icon">⚙️</div><h3>Processes</h3><p>Top 50 by CPU/mem. Sort, filter, kill (SIGTERM/SIGKILL) — all from the keyboard.</p></div>
+      <div class="feature"><div class="icon">🌡️</div><h3>Sensors & GPU</h3><p>CPU/GPU temps, fan speeds, NVIDIA GPU utilization and VRAM (optional).</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="container">
+    <h2>Install in 30 seconds</h2>
+    <p class="sub">Python 3.12+, Linux only. One command.</p>
+    <div class="install">
+      <h3>Quick install</h3>
+      <div class="code"><span class="prompt">$</span> git clone https://github.com/kenjaku-dev/pymon.git
+<span class="prompt">$</span> cd pymon
+<span class="prompt">$</span> ./install.sh install
+<span class="prompt">$</span> pymon</div>
+      <h3>Manual</h3>
+      <div class="code"><span class="prompt">$</span> python3 -m venv .venv
+<span class="prompt">$</span> .venv/bin/pip install -e .
+<span class="prompt">$</span> .venv/bin/pymon</div>
+      <p style="font-size:13px;color:var(--muted);margin-top:12px">Optional GPU support: <code>PYMON_GPU=1 ./install.sh install</code></p>
+    </div>
+  </div>
+</section>
+
+<section id="keys">
+  <div class="container">
+    <h2>Keyboard-driven</h2>
+    <p class="sub">No mouse needed. Everything reachable from the keyboard.</p>
+    <div class="kbd-grid">
+      <div class="kbd"><kbd>q</kbd><span>Quit</span></div>
+      <div class="kbd"><kbd>p</kbd><span>Pause / resume</span></div>
+      <div class="kbd"><kbd>r</kbd><span>Force refresh</span></div>
+      <div class="kbd"><kbd>1/2/3</kbd><span>Switch tabs</span></div>
+      <div class="kbd"><kbd>Tab</kbd><span>Next tab</span></div>
+      <div class="kbd"><kbd>/</kbd><span>Filter processes</span></div>
+      <div class="kbd"><kbd>s</kbd><span>Cycle sort column</span></div>
+      <div class="kbd"><kbd>a</kbd><span>Toggle sort direction</span></div>
+      <div class="kbd"><kbd>k/K</kbd><span>Kill (SIGTERM/SIGKILL)</span></div>
+      <div class="kbd"><kbd>+/-</kbd><span>Adjust refresh rate</span></div>
+      <div class="kbd"><kbd>h</kbd><span>Help overlay</span></div>
+      <div class="kbd"><kbd>Esc</kbd><span>Close / clear</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <h2>FAQ</h2>
+    <div class="faq">
+      <details><summary>Is it cross-platform?</summary><p>Linux only. It relies on psutil and Linux-specific paths like /proc.</p></details>
+      <details><summary>Does it need root?</summary><p>No. It runs as a normal user and gracefully degrades for metrics it can't read.</p></details>
+      <details><summary>How heavy is the monitor itself?</summary><p>Typically 30–60 MB RAM and under 1% CPU. psutil is C-backed.</p></details>
+      <details><summary>Can I configure it?</summary><p>Yes — ~/.config/sysmon/config.json (auto-created). Refresh rate, theme, sort, thresholds, panels. CLI flags override.</p></details>
+      <details><summary>GPU support?</summary><p>Optional. Install with PYMON_GPU=1 ./install.sh install (needs an NVIDIA driver).</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to monitor?</h2>
+    <p>Open source, MIT licensed, Python 3.12+. Star the repo if you find it useful.</p>
+    <a class="btn btn-primary" href="https://github.com/kenjaku-dev/pymon">Star on GitHub</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div>© 2026 pymon · MIT License</div>
+    <div><a href="https://github.com/kenjaku-dev/pymon">GitHub</a> · <a href="https://github.com/kenjaku-dev/pymon/issues">Issues</a></div>
+  </div>
+</footer>
+</body>
+</html>
