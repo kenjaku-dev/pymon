@@ -168,7 +168,8 @@ class PymonApp(App):
     def compose(self) -> ComposeResult:
         yield HeaderBar(id="header")
         yield Static("", id="statusbar")
-        with TabbedContent(initial="overview"):
+        initial = self.config.last_tab if self.config.last_tab in ("overview", "processes-tab", "sysinfo-tab") else "overview"
+        with TabbedContent(initial=initial):
             with TabPane("Overview", id="overview"):
                 yield CpuPanel(id="cpu")
                 yield MemoryPanel(id="mem")
@@ -275,6 +276,15 @@ class PymonApp(App):
             fb.value = ""
             if self.snapshot is not None:
                 self._apply(self.snapshot)
+
+    def on_tabbed_content_tab_activated(self, event) -> None:
+        pane = getattr(event, "pane", None)
+        pid = getattr(pane, "id", None) if pane is not None else None
+        if pid in ("overview", "processes-tab", "sysinfo-tab"):
+            self.config.last_tab = pid
+            save_config(self.config)
+            with contextlib.suppress(Exception):
+                self.query_one("#statusbar", Static).update(self._status_text())
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "filterbar":
