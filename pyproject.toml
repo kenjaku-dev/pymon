@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = ["nvidia-ml-py>=12.0"]
+gpu-amd = ["pyrsmi>=1.0"]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",

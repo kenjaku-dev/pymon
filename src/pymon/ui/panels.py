@@ -128,6 +128,13 @@ class DiskPanel(Static):
                 f"IO  R {human_rate(dio.read_rate)}  W {human_rate(dio.write_rate)}",
                 style="dim",
             )
+        if getattr(snap, "disk_io_per_device", None):
+            for dev in sorted(snap.disk_io_per_device)[:5]:
+                dio = snap.disk_io_per_device[dev]
+                t.append(
+                    f"  {dev}: R {human_rate(dio.read_rate)}  W {human_rate(dio.write_rate)}\n",
+                    style="dim",
+                )
         if not snap.disks:
             t.append("no disks", style="dim")
         self.update(t)
@@ -263,6 +270,7 @@ class ProcessTable(DataTable):
             "user": ("USER", 12),
             "cpu": ("CPU%", 7),
             "mem": ("MEM%", 7),
+            "rss": ("RSS", 9),
             "status": ("STATUS", 10),
             "threads": ("THR", 5),
             "cmd": ("CMD", 40),
@@ -318,7 +326,9 @@ class ProcessTable(DataTable):
                 elif c == "threads":
                     vals.append(str(r.num_threads))
                 elif c == "cmd":
-                    vals.append(r.name[:40])
+                    vals.append((r.cmdline or r.name)[:40])
+                elif c == "rss":
+                    vals.append(human_bytes(r.memory_rss))
             self.add_row(*vals, key=str(r.pid))
 
 

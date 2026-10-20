@@ -62,8 +62,10 @@ class ProcessInfo:
     username: str = ""
     cpu_percent: float = 0.0
     memory_percent: float = 0.0
+    memory_rss: int = 0
     status: str = ""
     num_threads: int = 0
+    cmdline: str = ""
 
 
 @dataclass
@@ -95,6 +97,7 @@ class SystemSnapshot:
     memory: MemInfo = field(default_factory=MemInfo)
     disks: list[DiskPartition] = field(default_factory=list)
     disk_io: DiskIO | None = None
+    disk_io_per_device: dict[str, DiskIO] = field(default_factory=dict)
     network: list[NetInterface] = field(default_factory=list)
     processes: list[ProcessInfo] = field(default_factory=list)
     sensors: list[SensorReading] = field(default_factory=list)

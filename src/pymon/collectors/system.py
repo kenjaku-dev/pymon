@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import os
 import platform
 import socket
+import subprocess
 import threading
 import time
 
@@ -59,6 +61,7 @@ class SystemCollector:
                 p.cpu_percent(interval=None)
         self._lock = threading.Lock()
         self._prev_disk: tuple[int, int, float] | None = None  # read, write, ts
+        self._prev_disk_io: dict[str, tuple[int, int, float]] = {}
         self._prev_net: dict[str, tuple[int, int, float]] = {}
         self._prev_ts: float = time.time()
 
@@ -113,6 +116,7 @@ class SystemCollector:
         try:
             snap.disks = self._collect_disks(show_all_partitions)
             snap.disk_io = self._collect_disk_io()
+            snap.disk_io_per_device = self._collect_disk_io_per_device()
         except Exception as e:
             snap.errors["disk"] = str(e)
             logger.warning("disk collection failed: %s", e)
@@ -256,6 +260,34 @@ class SystemCollector:
             write_rate=write_rate,
         )
 
+    def _collect_disk_io_per_device(self) -> dict[str, DiskIO]:
+        result: dict[str, DiskIO] = {}
+        try:
+            counters = psutil.disk_io_counters(perdisk=True)
+        except Exception:
+            return result
+        if not counters:
+            return result
+        now = time.time()
+        for dev, io in counters.items():
+            read_rate = 0.0
+            write_rate = 0.0
+            prev = self._prev_disk_io.get(dev)
+            if prev is not None:
+                prev_r, prev_w, prev_ts = prev
+                dt = now - prev_ts
+                if dt > 0:
+                    read_rate = max(0.0, (io.read_bytes - prev_r) / dt)
+                    write_rate = max(0.0, (io.write_bytes - prev_w) / dt)
+            self._prev_disk_io[dev] = (int(io.read_bytes), int(io.write_bytes), now)
+            result[dev] = DiskIO(
+                read_bytes=int(io.read_bytes),
+                write_bytes=int(io.write_bytes),
+                read_rate=read_rate,
+                write_rate=write_rate,
+            )
+        return result
+
     def _collect_network(self, show_all: bool) -> list[NetInterface]:
         result: list[NetInterface] = []
         try:
@@ -310,8 +342,10 @@ class SystemCollector:
                 "username",
                 "cpu_percent",
                 "memory_percent",
+                "memory_info",
                 "status",
                 "num_threads",
+                "cmdline",
             ]
         ):
             try:
@@ -326,8 +360,10 @@ class SystemCollector:
                     username=str(info.get("username") or ""),
                     cpu_percent=float(info.get("cpu_percent") or 0.0),
                     memory_percent=float(info.get("memory_percent") or 0.0),
+                    memory_rss=int(getattr(info.get("memory_info"), "rss", 0) or 0),
                     status=str(info.get("status") or ""),
                     num_threads=int(info.get("num_threads") or 0),
+                    cmdline=" ".join(info.get("cmdline") or []),
                 )
             )
         keymap = {
@@ -375,16 +411,82 @@ class SystemCollector:
                 )
         return out
 
+    def _collect_gpu_amd(self) -> list[GpuInfo] | None:
+        # Try rocm-smi JSON output (AMD)
+        try:
+            proc = subprocess.run(
+                ["rocm-smi", "--json"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return None
+        if proc.returncode != 0 or not proc.stdout.strip():
+            return None
+        try:
+            data = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            return None
+        gpus: list[GpuInfo] = []
+        for _card, info in (data or {}).items():
+            if not isinstance(info, dict):
+                continue
+            name = (
+                info.get("Card series")
+                or info.get("Card model")
+                or info.get("Device Name")
+                or "AMD GPU"
+            )
+
+            def _num(data: dict, key: str) -> float | None:
+                v = data.get(key)
+                if v is None:
+                    return None
+                if isinstance(v, (int, float)):
+                    return float(v)
+                s = str(v).strip().rstrip("%").strip()
+                try:
+                    return float(s)
+                except ValueError:
+                    return None
+
+            util = _num(info, "GPU use (%)")
+            mem_used_mb = _num(info, "GPU Memory (Used) (MB)") or _num(info, "VRAM (Used) (MB)")
+            mem_total_mb = _num(info, "GPU Memory (Total) (MB)") or _num(info, "VRAM (Total) (MB)")
+            mem_used = int(mem_used_mb * 1024 * 1024) if mem_used_mb is not None else None
+            mem_total = int(mem_total_mb * 1024 * 1024) if mem_total_mb is not None else None
+            temp = _num(info, "Temperature (Sensor edge) (C)") or _num(
+                info, "Temperature (Sensor memory) (C)"
+            )
+            gpus.append(
+                GpuInfo(
+                    name=str(name),
+                    utilization=util,
+                    memory_used=mem_used,
+                    memory_total=mem_total,
+                    temperature=temp,
+                    available=True,
+                )
+            )
+        return gpus if gpus else None
+
     def _collect_gpu(self) -> list[GpuInfo]:
         # try nvidia
         try:
             import pynvml  # type: ignore
         except Exception:
+            # fall through to AMD/ROCm detection below
+            pynvml = None  # type: ignore
+        if pynvml is None:
+            amd = self._collect_gpu_amd()
+            if amd is not None:
+                return amd
             return [
                 GpuInfo(
                     name="No GPU detected",
                     available=False,
-                    error="pynvml not installed (optional: pip install pymon[gpu])",
+                    error="No supported GPU runtime found (NVIDIA pynvml or AMD rocm-smi)",
                 )
             ]
         try:
@@ -497,6 +599,19 @@ def collect_system_info() -> dict[str, str]:
         info["User"] = os.environ.get("USER") or (os.getlogin() if hasattr(os, "getlogin") else "-")
     except (OSError, RuntimeError):
         info["User"] = os.environ.get("USER") or "-"
+    # container detection
+    container = "no"
+    if os.path.exists("/.dockerenv"):
+        container = "docker"
+    else:
+        try:
+            with open("/proc/1/cgroup", encoding="utf-8") as f:
+                cg = f.read()
+            if "docker" in cg or "containerd" in cg or "kubepods" in cg:
+                container = "container"
+        except OSError:
+            pass
+    info["Container"] = container
     info["Python"] = platform.python_version()
     return info
 
