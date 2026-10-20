@@ -95,8 +95,7 @@ class MemoryPanel(Static):
         t.append("\n")
         t.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
         t.append(
-            f"{human_bytes(m.used)} / {human_bytes(m.total)}   "
-            f"avail {human_bytes(m.available)}\n",
+            f"{human_bytes(m.used)} / {human_bytes(m.total)}   avail {human_bytes(m.available)}\n",
             style="dim",
         )
         # swap
@@ -126,8 +125,7 @@ class DiskPanel(Static):
         if snap.disk_io is not None:
             dio = snap.disk_io
             t.append(
-                f"IO  R {human_rate(dio.read_rate)}  "
-                f"W {human_rate(dio.write_rate)}",
+                f"IO  R {human_rate(dio.read_rate)}  W {human_rate(dio.write_rate)}",
                 style="dim",
             )
         if not snap.disks:
@@ -158,13 +156,11 @@ class NetworkPanel(Static):
             t.append(f"{n.name} ", style="bold")
             t.append(f"({state})\n", style=st)
             t.append(
-                f"  ↓ {human_rate(n.recv_rate):>14}   "
-                f"↑ {human_rate(n.send_rate):>14}\n",
+                f"  ↓ {human_rate(n.recv_rate):>14}   ↑ {human_rate(n.send_rate):>14}\n",
                 style="dim",
             )
             t.append(
-                f"  rx {human_bytes(n.bytes_recv)}  "
-                f"tx {human_bytes(n.bytes_sent)}\n",
+                f"  rx {human_bytes(n.bytes_recv)}  tx {human_bytes(n.bytes_sent)}\n",
                 style="dim",
             )
         if not snap.network:
@@ -283,7 +279,8 @@ class ProcessTable(DataTable):
         if filter_text:
             ft = filter_text.lower()
             rows = [
-                r for r in rows
+                r
+                for r in rows
                 if ft in r.name.lower()
                 or ft in str(r.pid)
                 or ft in r.username.lower()

@@ -27,8 +27,22 @@ from .models import (
 logger = logging.getLogger("pymon.collectors")
 
 _PSEUDO_FS = {
-    "proc", "sysfs", "devtmpfs", "devpts", "cgroup", "cgroup2", "pstore", "bpf",
-    "tracefs", "debugfs", "securityfs", "configfs", "fusectl", "mqueue", "hugetlbfs", "ramfs",
+    "proc",
+    "sysfs",
+    "devtmpfs",
+    "devpts",
+    "cgroup",
+    "cgroup2",
+    "pstore",
+    "bpf",
+    "tracefs",
+    "debugfs",
+    "securityfs",
+    "configfs",
+    "fusectl",
+    "mqueue",
+    "hugetlbfs",
+    "ramfs",
 }
 
 
@@ -48,9 +62,14 @@ class SystemCollector:
         self._prev_net: dict[str, tuple[int, int, float]] = {}
         self._prev_ts: float = time.time()
 
-    def collect(self, process_row_cap: int = 50, process_sort: str = "cpu",
-                process_sort_desc: bool = True, show_all_interfaces: bool = True,
-                show_all_partitions: bool = True) -> SystemSnapshot:
+    def collect(
+        self,
+        process_row_cap: int = 50,
+        process_sort: str = "cpu",
+        process_sort_desc: bool = True,
+        show_all_interfaces: bool = True,
+        show_all_partitions: bool = True,
+    ) -> SystemSnapshot:
         with self._lock:
             return self._collect_unlocked(
                 process_row_cap=process_row_cap,
@@ -60,9 +79,14 @@ class SystemCollector:
                 show_all_partitions=show_all_partitions,
             )
 
-    def _collect_unlocked(self, process_row_cap: int = 50, process_sort: str = "cpu",
-                          process_sort_desc: bool = True, show_all_interfaces: bool = True,
-                          show_all_partitions: bool = True) -> SystemSnapshot:
+    def _collect_unlocked(
+        self,
+        process_row_cap: int = 50,
+        process_sort: str = "cpu",
+        process_sort_desc: bool = True,
+        show_all_interfaces: bool = True,
+        show_all_partitions: bool = True,
+    ) -> SystemSnapshot:
         snap = SystemSnapshot(timestamp=time.time())
         snap.hostname = socket.gethostname()
         try:
@@ -278,8 +302,18 @@ class SystemCollector:
 
     def _collect_processes(self, cap: int, sort: str, desc: bool) -> list[ProcessInfo]:
         rows: list[ProcessInfo] = []
-        for p in psutil.process_iter(["pid", "ppid", "name", "username", "cpu_percent",
-                                     "memory_percent", "status", "num_threads"]):
+        for p in psutil.process_iter(
+            [
+                "pid",
+                "ppid",
+                "name",
+                "username",
+                "cpu_percent",
+                "memory_percent",
+                "status",
+                "num_threads",
+            ]
+        ):
             try:
                 info = p.info
             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -346,8 +380,13 @@ class SystemCollector:
         try:
             import pynvml  # type: ignore
         except Exception:
-            return [GpuInfo(name="No GPU detected", available=False,
-                            error="pynvml not installed (optional: pip install pymon[gpu])")]
+            return [
+                GpuInfo(
+                    name="No GPU detected",
+                    available=False,
+                    error="pynvml not installed (optional: pip install pymon[gpu])",
+                )
+            ]
         try:
             pynvml.nvmlInit()
         except Exception as e:
@@ -379,8 +418,16 @@ class SystemCollector:
                     pass
                 with contextlib.suppress(Exception):
                     temp = float(pynvml.nvmlDeviceGetTemperature(h, pynvml.NVML_TEMPERATURE_GPU))
-                gpus.append(GpuInfo(name=name, utilization=util, memory_used=mem_used,
-                                    memory_total=mem_total, temperature=temp, available=True))
+                gpus.append(
+                    GpuInfo(
+                        name=name,
+                        utilization=util,
+                        memory_used=mem_used,
+                        memory_total=mem_total,
+                        temperature=temp,
+                        available=True,
+                    )
+                )
         except Exception as e:
             gpus.append(GpuInfo(name="GPU error", available=False, error=str(e)))
         finally:
@@ -427,9 +474,7 @@ def collect_system_info() -> dict[str, str]:
     try:
         parts = psutil.disk_partitions(all=False)
         total = sum(
-            psutil.disk_usage(p.mountpoint).total
-            for p in parts
-            if _safe_usage(p.mountpoint)
+            psutil.disk_usage(p.mountpoint).total for p in parts if _safe_usage(p.mountpoint)
         )
         info["Disks"] = f"{len(parts)} partitions, {_human_bytes(total)} total"
     except Exception:
@@ -484,6 +529,7 @@ def _fmt_uptime(seconds: float) -> str:
         return f"{hours}h {mins}m"
     return f"{mins}m"
 
+
 _SYSTEM_INFO_CACHE: dict[str, str] | None = None
 _SYSTEM_INFO_TS: float = 0.0
 _SYSTEM_INFO_TTL: float = 30.0
@@ -493,11 +539,7 @@ def get_system_info(cached: bool = True) -> dict[str, str]:
     """Return system info, optionally cached for ``_SYSTEM_INFO_TTL`` seconds."""
     global _SYSTEM_INFO_CACHE, _SYSTEM_INFO_TS
     now = time.time()
-    if (
-        not cached
-        or _SYSTEM_INFO_CACHE is None
-        or (now - _SYSTEM_INFO_TS) >= _SYSTEM_INFO_TTL
-    ):
+    if not cached or _SYSTEM_INFO_CACHE is None or (now - _SYSTEM_INFO_TS) >= _SYSTEM_INFO_TTL:
         _SYSTEM_INFO_CACHE = collect_system_info()
         _SYSTEM_INFO_TS = now
     return _SYSTEM_INFO_CACHE

@@ -168,7 +168,11 @@ class PymonApp(App):
     def compose(self) -> ComposeResult:
         yield HeaderBar(id="header")
         yield Static("", id="statusbar")
-        initial = self.config.last_tab if self.config.last_tab in ("overview", "processes-tab", "sysinfo-tab") else "overview"
+        initial = (
+            self.config.last_tab
+            if self.config.last_tab in ("overview", "processes-tab", "sysinfo-tab")
+            else "overview"
+        )
         with TabbedContent(initial=initial):
             with TabPane("Overview", id="overview"):
                 yield CpuPanel(id="cpu")
@@ -239,8 +243,7 @@ class PymonApp(App):
 
     def _status_text(self) -> str:
         parts = [
-            f"sort={self.config.process_sort}"
-            + ("↓" if self.config.process_sort_desc else "↑"),
+            f"sort={self.config.process_sort}" + ("↓" if self.config.process_sort_desc else "↑"),
             f"interval={self.config.refresh_interval:.1f}s",
             "PAUSED" if self._paused else "live",
         ]
