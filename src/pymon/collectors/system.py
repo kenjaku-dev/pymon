@@ -429,7 +429,10 @@ def collect_system_info() -> dict[str, str]:
         info["Uptime"] = _fmt_uptime(time.time() - psutil.boot_time())
     with contextlib.suppress(AttributeError, OSError):
         info["Load average"] = ", ".join(f"{x:.2f}" for x in psutil.getloadavg())
-    info["User"] = os.environ.get("USER") or os.getlogin() if hasattr(os, "getlogin") else "-"
+    try:
+        info["User"] = os.environ.get("USER") or (os.getlogin() if hasattr(os, "getlogin") else "-")
+    except (OSError, RuntimeError):
+        info["User"] = os.environ.get("USER") or "-"
     info["Python"] = platform.python_version()
     return info
 

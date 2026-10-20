@@ -207,8 +207,14 @@ class PymonApp(App):
         )
 
     def _collect_and_apply(self) -> None:
-        snap = self._collect()
-        self.call_from_thread(self._apply, snap)
+        if self._collecting:
+            return
+        self._collecting = True
+        try:
+            snap = self._collect()
+            self.call_from_thread(self._apply, snap)
+        finally:
+            self._collecting = False
 
     def _apply(self, snap: SystemSnapshot) -> None:
         self.snapshot = snap
@@ -355,15 +361,13 @@ class PymonApp(App):
         if table.row_count == 0:
             return None
         try:
-            for i, rk in enumerate(table.rows):
-                if i == table.cursor_row:
-                    value = getattr(rk, "value", None)
-                    if value is None:
-                        value = str(rk)
-                    return int(value)
-        except (ValueError, TypeError, Exception):
+            row = table.ordered_rows[table.cursor_row]
+            value = getattr(row.key, "value", None)
+            if value is None:
+                return None
+            return int(value)
+        except (ValueError, TypeError, IndexError):
             return None
-        return None
 
     def _kill_selected(self, sig: int) -> None:
         pid = self._selected_pid()
