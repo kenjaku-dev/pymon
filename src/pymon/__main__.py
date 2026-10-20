@@ -7,6 +7,7 @@ import logging
 import sys
 from pathlib import Path
 
+from pymon import __version__
 from pymon.app import PymonApp
 from pymon.config import load_config
 
@@ -22,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--desc", action="store_true", default=None, help="sort descending")
     parser.add_argument("--asc", action="store_true", default=None, help="sort ascending")
     parser.add_argument("--rows", type=int, default=None, help="max process rows")
-    parser.add_argument("--version", action="version", version="pymon 0.1.0")
+    parser.add_argument("--version", action="version", version=f"pymon {__version__}")
     return parser
 
 

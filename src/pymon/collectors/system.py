@@ -7,6 +7,7 @@ import logging
 import os
 import platform
 import socket
+import threading
 import time
 
 import psutil
@@ -38,6 +39,11 @@ class SystemCollector:
         # prime cpu percent
         psutil.cpu_percent(interval=None)
         psutil.cpu_percent(interval=None, percpu=True)
+        # prime per-process cpu percent so the first collect has values
+        for p in psutil.process_iter():
+            with contextlib.suppress(Exception):
+                p.cpu_percent(interval=None)
+        self._lock = threading.Lock()
         self._prev_disk: tuple[int, int, float] | None = None  # read, write, ts
         self._prev_net: dict[str, tuple[int, int, float]] = {}
         self._prev_ts: float = time.time()
@@ -45,6 +51,18 @@ class SystemCollector:
     def collect(self, process_row_cap: int = 50, process_sort: str = "cpu",
                 process_sort_desc: bool = True, show_all_interfaces: bool = True,
                 show_all_partitions: bool = True) -> SystemSnapshot:
+        with self._lock:
+            return self._collect_unlocked(
+                process_row_cap=process_row_cap,
+                process_sort=process_sort,
+                process_sort_desc=process_sort_desc,
+                show_all_interfaces=show_all_interfaces,
+                show_all_partitions=show_all_partitions,
+            )
+
+    def _collect_unlocked(self, process_row_cap: int = 50, process_sort: str = "cpu",
+                          process_sort_desc: bool = True, show_all_interfaces: bool = True,
+                          show_all_partitions: bool = True) -> SystemSnapshot:
         snap = SystemSnapshot(timestamp=time.time())
         snap.hostname = socket.gethostname()
         try:
@@ -464,3 +482,21 @@ def _fmt_uptime(seconds: float) -> str:
     if hours:
         return f"{hours}h {mins}m"
     return f"{mins}m"
+
+_SYSTEM_INFO_CACHE: dict[str, str] | None = None
+_SYSTEM_INFO_TS: float = 0.0
+_SYSTEM_INFO_TTL: float = 30.0
+
+
+def get_system_info(cached: bool = True) -> dict[str, str]:
+    """Return system info, optionally cached for ``_SYSTEM_INFO_TTL`` seconds."""
+    global _SYSTEM_INFO_CACHE, _SYSTEM_INFO_TS
+    now = time.time()
+    if (
+        not cached
+        or _SYSTEM_INFO_CACHE is None
+        or (now - _SYSTEM_INFO_TS) >= _SYSTEM_INFO_TTL
+    ):
+        _SYSTEM_INFO_CACHE = collect_system_info()
+        _SYSTEM_INFO_TS = now
+    return _SYSTEM_INFO_CACHE

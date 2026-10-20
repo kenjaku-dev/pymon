@@ -6,7 +6,7 @@ from rich.text import Text
 from textual.widgets import DataTable, Static
 
 from pymon.collectors.models import SystemSnapshot
-from pymon.collectors.system import collect_system_info
+from pymon.collectors.system import get_system_info
 from pymon.config import Config
 from pymon.utils import bar, human_bytes, human_rate
 
@@ -210,7 +210,7 @@ class SystemInfoPanel(Static):
     """
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
-        info = collect_system_info()
+        info = get_system_info()
         t = Text()
         for key, val in info.items():
             t.append(f"{key:<24}", style="bold cyan")
