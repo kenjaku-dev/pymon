@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import csv
+import json
 import logging
+from dataclasses import asdict
+from datetime import datetime
+from pathlib import Path
 
 from rich.text import Text
 from textual import events
@@ -112,6 +117,7 @@ class HelpScreen(ModalScreen[None]):
             ("1 / 2 / 3", "switch tabs (overview / processes / system info)"),
             ("Tab", "next tab"),
             ("h", "this help"),
+            ("e / E", "export snapshot (JSON / CSV)"),
             ("Esc", "close modal / clear filter"),
         ]
         for k, v in bindings:
@@ -138,6 +144,8 @@ class PymonApp(App):
         Binding("plus", "faster", "Faster"),
         Binding("minus", "slower", "Slower"),
         Binding("h", "help", "Help"),
+        Binding("e", "export_json", "Export JSON"),
+        Binding("E", "export_csv", "Export CSV"),
         Binding("1", "show_overview", "Overview"),
         Binding("2", "show_processes", "Processes"),
         Binding("3", "show_sysinfo", "System Info"),
@@ -396,6 +404,54 @@ class PymonApp(App):
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
+
+    def action_export_json(self) -> None:
+        if self.snapshot is None:
+            self.notify("No snapshot to export", severity="warning")
+            return
+        out_dir = Path.home() / ".local" / "share" / "pymon" / "exports"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        path = out_dir / f"pymon-{ts}.json"
+        try:
+            path.write_text(
+                json.dumps(asdict(self.snapshot), indent=2, default=str), encoding="utf-8"
+            )
+            self.notify(f"Exported {path}")
+        except OSError as e:
+            self.notify(f"Export failed: {e}", severity="error")
+
+    def action_export_csv(self) -> None:
+        if self.snapshot is None:
+            self.notify("No snapshot to export", severity="warning")
+            return
+        out_dir = Path.home() / ".local" / "share" / "pymon" / "exports"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+        path = out_dir / f"pymon-{ts}.csv"
+        try:
+            with path.open("w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    ["pid", "ppid", "name", "user", "cpu", "mem", "rss", "status", "threads"]
+                )
+                for p in self.snapshot.processes:
+                    writer.writerow(
+                        [
+                            p.pid,
+                            p.ppid,
+                            p.name,
+                            p.username,
+                            p.cpu_percent,
+                            p.memory_percent,
+                            p.memory_rss,
+                            p.status,
+                            p.num_threads,
+                        ]
+                    )
+            self.notify(f"Exported {path}")
+        except OSError as e:
+            self.notify(f"Export failed: {e}", severity="error")
 
     def action_escape(self) -> None:
         if self._filter_visible:
