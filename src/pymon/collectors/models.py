@@ -57,6 +57,7 @@ class NetInterface:
 @dataclass
 class ProcessInfo:
     pid: int = 0
+    ppid: int = 0
     name: str = ""
     username: str = ""
     cpu_percent: float = 0.0

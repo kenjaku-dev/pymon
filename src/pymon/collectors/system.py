@@ -278,7 +278,7 @@ class SystemCollector:
 
     def _collect_processes(self, cap: int, sort: str, desc: bool) -> list[ProcessInfo]:
         rows: list[ProcessInfo] = []
-        for p in psutil.process_iter(["pid", "name", "username", "cpu_percent",
+        for p in psutil.process_iter(["pid", "ppid", "name", "username", "cpu_percent",
                                      "memory_percent", "status", "num_threads"]):
             try:
                 info = p.info
@@ -287,6 +287,7 @@ class SystemCollector:
             rows.append(
                 ProcessInfo(
                     pid=int(info.get("pid") or 0),
+                    ppid=int(info.get("ppid") or 0),
                     name=str(info.get("name") or ""),
                     username=str(info.get("username") or ""),
                     cpu_percent=float(info.get("cpu_percent") or 0.0),

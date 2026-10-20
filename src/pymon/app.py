@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 
 from rich.text import Text
@@ -14,7 +15,7 @@ from textual.widgets import Footer, Input, Static, TabbedContent, TabPane
 
 from pymon.collectors import SystemCollector
 from pymon.collectors.models import SystemSnapshot
-from pymon.config import Config
+from pymon.config import Config, save_config
 from pymon.ui.panels import (
     CpuPanel,
     DiskPanel,
@@ -34,6 +35,7 @@ Screen {
     layout: vertical;
 }
 #header { height: 3; }
+#statusbar { height: 1; padding: 0 1; background: $surface; color: $text-muted; }
 TabbedContent { height: 1fr; }
 #overview {
     layout: grid;
@@ -105,6 +107,7 @@ class HelpScreen(ModalScreen[None]):
             ("/", "filter processes"),
             ("s", "cycle sort column"),
             ("a", "toggle sort direction"),
+            ("t", "toggle process tree view"),
             ("+ / -", "adjust refresh interval"),
             ("1 / 2 / 3", "switch tabs (overview / processes / system info)"),
             ("Tab", "next tab"),
@@ -131,6 +134,7 @@ class PymonApp(App):
         Binding("slash", "toggle_filter", "Filter"),
         Binding("s", "cycle_sort", "Sort"),
         Binding("a", "toggle_sort_dir", "Asc/Desc"),
+        Binding("t", "toggle_tree", "Tree"),
         Binding("plus", "faster", "Faster"),
         Binding("minus", "slower", "Slower"),
         Binding("h", "help", "Help"),
@@ -163,6 +167,7 @@ class PymonApp(App):
 
     def compose(self) -> ComposeResult:
         yield HeaderBar(id="header")
+        yield Static("", id="statusbar")
         with TabbedContent(initial="overview"):
             with TabPane("Overview", id="overview"):
                 yield CpuPanel(id="cpu")
@@ -220,6 +225,7 @@ class PymonApp(App):
         self.snapshot = snap
         # update config sort state already in config
         self.query_one("#header", HeaderBar).update_data(snap, self.config)
+        self.query_one("#statusbar", Static).update(self._status_text())
         self.query_one("#cpu", CpuPanel).update_data(snap, self.config)
         self.query_one("#mem", MemoryPanel).update_data(snap, self.config)
         self.query_one("#disk", DiskPanel).update_data(snap, self.config)
@@ -230,11 +236,26 @@ class PymonApp(App):
         table = self.query_one("#processes", ProcessTable)
         table.update_data(snap, self.config, self._filter_text)
 
+    def _status_text(self) -> str:
+        parts = [
+            f"sort={self.config.process_sort}"
+            + ("↓" if self.config.process_sort_desc else "↑"),
+            f"interval={self.config.refresh_interval:.1f}s",
+            "PAUSED" if self._paused else "live",
+        ]
+        if self._filter_text:
+            parts.append(f"filter={self._filter_text}")
+        if self.snapshot is not None and self.snapshot.errors:
+            parts.append(f"errors={len(self.snapshot.errors)}")
+        return "  │  ".join(parts)
+
     # ---- actions ----
 
     def action_toggle_pause(self) -> None:
         self._paused = not self._paused
         self.notify("Paused" if self._paused else "Resumed")
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
 
     def action_force_refresh(self) -> None:
         if self._collecting:
@@ -266,7 +287,10 @@ class PymonApp(App):
     def action_cycle_sort(self) -> None:
         self._sort_idx = (self._sort_idx + 1) % len(self._sort_cols)
         self.config.process_sort = self._sort_cols[self._sort_idx]
+        save_config(self.config)
         self.notify(f"Sort: {self.config.process_sort}")
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
         if self.snapshot is not None:
             # re-sort current processes in place
             self._resort_snapshot()
@@ -275,9 +299,21 @@ class PymonApp(App):
     def action_toggle_sort_dir(self) -> None:
         self._sort_desc = not self._sort_desc
         self.config.process_sort_desc = self._sort_desc
+        save_config(self.config)
         self.notify("Desc" if self._sort_desc else "Asc")
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
         if self.snapshot is not None:
             self._resort_snapshot()
+            self._apply(self.snapshot)
+
+    def action_toggle_tree(self) -> None:
+        self.config.process_tree = not getattr(self.config, "process_tree", False)
+        save_config(self.config)
+        self.notify("Tree view " + ("on" if self.config.process_tree else "off"))
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
+        if self.snapshot is not None:
             self._apply(self.snapshot)
 
     def _resort_snapshot(self) -> None:
@@ -295,13 +331,19 @@ class PymonApp(App):
 
     def action_faster(self) -> None:
         self.config.refresh_interval = max(0.1, self.config.refresh_interval - 0.1)
+        save_config(self.config)
         self._rearm_timer()
         self.notify(f"Interval {self.config.refresh_interval:.1f}s")
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
 
     def action_slower(self) -> None:
         self.config.refresh_interval = min(10.0, self.config.refresh_interval + 0.5)
+        save_config(self.config)
         self._rearm_timer()
         self.notify(f"Interval {self.config.refresh_interval:.1f}s")
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
 
     def _rearm_timer(self) -> None:
         # textual timers can't easily change interval; recreate by removing old.

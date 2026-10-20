@@ -29,6 +29,7 @@ class Config:
     thresholds: Thresholds = field(default_factory=Thresholds)
     show_all_interfaces: bool = True
     show_all_partitions: bool = False
+    process_tree: bool = False
 
     def clamped_interval(self) -> float:
         return max(0.1, min(10.0, self.refresh_interval))
@@ -65,6 +66,7 @@ def load_config(path: Path | None = None) -> Config:
         )
     cfg.show_all_interfaces = bool(raw.get("show_all_interfaces", cfg.show_all_interfaces))
     cfg.show_all_partitions = bool(raw.get("show_all_partitions", cfg.show_all_partitions))
+    cfg.process_tree = bool(raw.get("process_tree", cfg.process_tree))
     cfg.refresh_interval = cfg.clamped_interval()
     return cfg
 

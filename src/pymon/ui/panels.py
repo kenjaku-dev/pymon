@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections import deque
+
 from rich.text import Text
 from textual.widgets import DataTable, Static
 
 from pymon.collectors.models import SystemSnapshot
 from pymon.collectors.system import get_system_info
 from pymon.config import Config
-from pymon.utils import bar, human_bytes, human_rate
+from pymon.utils import bar, human_bytes, human_rate, sparkline
 
 
 class HeaderBar(Static):
@@ -35,14 +37,22 @@ class CpuPanel(Static):
     CpuPanel { height: auto; padding: 1; border: round #556d59; }
     """
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._history: deque[float] = deque(maxlen=40)
+
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
         cpu = snap.cpu
         thr = config.thresholds.cpu
+        self._history.append(cpu.overall)
         t = Text()
         style = _usage_style(cpu.overall, thr)
         t.append(f"CPU  {cpu.overall:5.1f}%  ", style=style)
         t.append(bar(cpu.overall, 18), style=style.split()[0])
+        if cpu.overall >= thr:
+            t.append("  ⚠", style="red bold")
         t.append("\n")
+        t.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
         if cpu.freq_mhz:
             t.append(f"freq {cpu.freq_mhz:7.0f} MHz   ", style="dim")
         if cpu.temp_c is not None:
@@ -68,14 +78,22 @@ class MemoryPanel(Static):
     MemoryPanel { height: auto; padding: 1; border: round #6c6c4b; }
     """
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._history: deque[float] = deque(maxlen=40)
+
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
         m = snap.memory
         thr = config.thresholds.memory
+        self._history.append(m.percent)
         t = Text()
         st = _usage_style(m.percent, thr)
         t.append(f"RAM  {m.percent:5.1f}%  ", style=st)
         t.append(bar(m.percent, 18), style=st.split()[0])
+        if m.percent >= thr:
+            t.append("  ⚠", style="red bold")
         t.append("\n")
+        t.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
         t.append(
             f"{human_bytes(m.used)} / {human_bytes(m.total)}   "
             f"avail {human_bytes(m.available)}\n",
@@ -122,7 +140,17 @@ class NetworkPanel(Static):
     NetworkPanel { height: auto; padding: 1; border: round #5c588d; }
     """
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._recv_history: deque[float] = deque(maxlen=40)
+        self._send_history: deque[float] = deque(maxlen=40)
+
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
+        # aggregate rates for sparkline
+        total_recv = sum(n.recv_rate for n in snap.network)
+        total_send = sum(n.send_rate for n in snap.network)
+        self._recv_history.append(total_recv)
+        self._send_history.append(total_send)
         t = Text()
         for n in snap.network:
             state = "up" if n.is_up else "down"
@@ -141,6 +169,9 @@ class NetworkPanel(Static):
             )
         if not snap.network:
             t.append("no interfaces", style="dim")
+        else:
+            t.append(f"rx {sparkline(self._recv_history, 24)}\n", style="dim")
+            t.append(f"tx {sparkline(self._send_history, 24)}\n", style="dim")
         self.update(t)
 
 
@@ -251,14 +282,34 @@ class ProcessTable(DataTable):
         rows = snap.processes
         if filter_text:
             ft = filter_text.lower()
-            rows = [r for r in rows if ft in r.name.lower() or ft in str(r.pid)]
+            rows = [
+                r for r in rows
+                if ft in r.name.lower()
+                or ft in str(r.pid)
+                or ft in r.username.lower()
+                or ft in r.status.lower()
+            ]
+        # process tree depths
+        depths: dict[int, int] = {}
+        if getattr(config, "process_tree", False):
+            by_pid = {r.pid: r for r in rows}
+            for r in rows:
+                d = 0
+                cur = r.ppid
+                seen = {r.pid}
+                while cur in by_pid and cur not in seen and d < 10:
+                    seen.add(cur)
+                    d += 1
+                    cur = by_pid[cur].ppid
+                depths[r.pid] = d
         for r in rows:
             vals = []
             for c in config.process_columns:
                 if c == "pid":
                     vals.append(str(r.pid))
                 elif c == "name":
-                    vals.append(r.name[:22])
+                    indent = "  " * depths.get(r.pid, 0)
+                    vals.append((indent + r.name)[:22])
                 elif c == "user":
                     vals.append(r.username[:12])
                 elif c == "cpu":
