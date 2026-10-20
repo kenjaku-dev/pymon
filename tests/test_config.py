@@ -42,3 +42,12 @@ def test_corrupt_config_falls_back(tmp_path: Path) -> None:
     cfg_path.write_text("{not json", encoding="utf-8")
     cfg = load_config(cfg_path)
     assert cfg.refresh_interval == 1.0
+
+
+def test_process_tree_roundtrip(tmp_path: Path) -> None:
+    cfg_path = tmp_path / "config.json"
+    cfg = Config(process_tree=True, last_tab="processes-tab")
+    save_config(cfg, cfg_path)
+    loaded = load_config(cfg_path)
+    assert loaded.process_tree is True
+    assert loaded.last_tab == "processes-tab"

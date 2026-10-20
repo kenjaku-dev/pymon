@@ -8,8 +8,22 @@ version = "0.1.0"
 description = "A Linux system monitor TUI built with psutil and Textual."
 readme = "README.md"
 requires-python = ">=3.12"
+keywords = ["system-monitor", "tui", "psutil", "textual", "linux"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+]
 license = { text = "MIT" }
 authors = [{ name = "pymon" }]
+urls = { Homepage = "https://github.com/kenjaku-dev/pymon", Repository = "https://github.com/kenjaku-dev/pymon", Issues = "https://github.com/kenjaku-dev/pymon/issues" }
 dependencies = [
     "psutil>=5.9",
     "textual>=0.50",

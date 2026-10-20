@@ -39,3 +39,10 @@ def test_sensors_list() -> None:
     collector = SystemCollector()
     snap = collector.collect(process_row_cap=1)
     assert isinstance(snap.sensors, list)
+
+
+def test_process_has_cmdline() -> None:
+    collector = SystemCollector()
+    snap = collector.collect(process_row_cap=3)
+    assert snap.processes
+    assert any(isinstance(p.cmdline, str) for p in snap.processes)
