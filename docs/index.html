@@ -3,94 +3,167 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#060907">
 <title>pymon — Linux System Monitor TUI</title>
 <meta name="description" content="A beautiful, fast Linux system monitor TUI built with psutil and Textual. CPU, memory, disk, network, processes, sensors, GPU — all in one terminal dashboard.">
 <style>
+/* ============ pymon design tokens ============ */
 :root{
-  --bg:#000000;--fg:#cccccc;--title:#eeeeee;--green:#77ca9b;--warn:#cbc06c;--red:#dc4c4c;
-  --blue:#4897d4;--muted:#555555;--surface:#111111;--border:#333333;
+  color-scheme:dark;
+  /* palette */
+  --bg:#060907;
+  --surface:#0d1310;
+  --code:#0a0d0b;
+  --border:#1d2420;
+  --border-strong:#2b352e;
+  --fg:#c9d1cc;
+  --title:#f2f6f3;
+  --muted:#8fa39a;
+  --green:#77ca9b;
+  --green-soft:rgba(119,202,155,.10);
+  --green-line:rgba(119,202,155,.22);
+  --warn:#cbc06c;
+  --red:#dc4c4c;
+  --blue:#4897d4;
+  /* type */
+  --font-sans:'Inter','Segoe UI',system-ui,-apple-system,'Noto Sans',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --font-mono:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  /* shape + depth */
+  --radius-sm:8px;--radius-md:12px;--radius-lg:16px;
+  --shadow-panel:0 24px 64px rgba(0,0,0,.55);
+  --glow:0 8px 32px rgba(119,202,155,.22);
+  /* spacing + rhythm */
+  --sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:20px;--sp-6:24px;--sp-8:32px;--sp-12:48px;
+  --section-y:clamp(64px,9vw,104px);
+  --container:1120px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:'JetBrains Mono','Fira Code','Cascadia Code',ui-monospace,monospace;background:var(--bg);color:var(--fg);line-height:1.6;-webkit-font-smoothing:antialiased}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--fg);line-height:1.65;font-size:18px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:rgba(119,202,155,.25)}
 a{color:var(--green);text-decoration:none}
 a:hover{text-decoration:underline}
-.container{max-width:1120px;margin:0 auto;padding:0 24px}
-nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-nav .container{display:flex;align-items:center;justify-content:space-between;height:56px}
-.logo{font-weight:700;color:var(--title);font-size:18px}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+
+.container{max-width:var(--container);margin:0 auto;padding:0 var(--sp-6)}
+
+/* ============ nav ============ */
+nav{position:sticky;top:0;z-index:50;background:rgba(6,9,7,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+nav .container{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{font-family:var(--font-mono);font-weight:700;color:var(--title);font-size:18px}
 .logo span{color:var(--green)}
-.navlinks{display:flex;gap:24px;font-size:14px}
+.navlinks{display:flex;gap:var(--sp-6);font-size:15px}
 .navlinks a{color:var(--fg)}
-.cta-nav{background:var(--green);color:#000;padding:8px 16px;border-radius:6px;font-weight:700;font-size:13px}
-.cta-nav:hover{text-decoration:none;opacity:.9}
-.hero{padding:96px 0 64px;text-align:center}
-.hero h1{font-size:56px;font-weight:800;color:var(--title);letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px}
+.navlinks a:hover{color:var(--title);text-decoration:none}
+.cta-nav{background:var(--green);color:#000;padding:9px 18px;border-radius:var(--radius-sm);font-weight:700;font-size:14px}
+.cta-nav:hover{text-decoration:none;transform:translateY(-1px);box-shadow:var(--glow)}
+
+/* ============ hero ============ */
+.hero{padding:clamp(72px,10vw,120px) 0 var(--sp-12);text-align:center;background:radial-gradient(720px 340px at 50% -60px,rgba(119,202,155,.12),transparent 70%)}
+.hero h1{font-size:clamp(40px,5.5vw,64px);font-weight:800;color:var(--title);letter-spacing:-.025em;line-height:1.08;margin-bottom:var(--sp-5);text-wrap:balance}
 .hero h1 .accent{color:var(--green)}
-.hero p{font-size:20px;color:var(--fg);max-width:720px;margin:0 auto 32px}
-.hero .buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:8px;font-weight:700;font-size:15px;border:1px solid var(--border);transition:all .15s}
-.btn-primary{background:var(--green);color:#000;border-color:var(--green)}
-.btn-primary:hover{opacity:.9;text-decoration:none}
-.btn-ghost{background:transparent;color:var(--fg)}
-.btn-ghost:hover{border-color:var(--fg);text-decoration:none}
-.trust{margin-top:24px;font-size:13px;color:var(--muted)}
+.hero p{font-size:clamp(18px,2vw,21px);line-height:1.6;color:var(--fg);max-width:65ch;margin:0 auto var(--sp-8)}
+.hero .buttons{display:flex;gap:var(--sp-4);justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:15px 30px;border-radius:10px;font-weight:600;font-size:16px;border:1px solid var(--border);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background-color .15s ease,filter .15s ease}
+.btn:hover{text-decoration:none}
+.btn:active{transform:translateY(0) scale(.99)}
+.btn-primary{background:var(--green);color:#000;border-color:var(--green);box-shadow:var(--glow)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(119,202,155,.32);filter:brightness(1.06)}
+.btn-primary:active{transform:translateY(0);box-shadow:var(--glow)}
+.btn-ghost{background:transparent;color:var(--title)}
+.btn-ghost:hover{border-color:var(--border-strong);background:rgba(255,255,255,.04);transform:translateY(-2px)}
+.btn-ghost:active{transform:translateY(0)}
+.trust{margin-top:var(--sp-6);font-size:14px;color:var(--muted);font-family:var(--font-mono)}
 .trust span{color:var(--green)}
-.terminal{margin:48px auto 0;max-width:920px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)}
-.terminal-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:#0a0a0a}
+
+/* ============ terminal mock ============ */
+.terminal{margin:var(--sp-12) auto 0;max-width:920px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-panel)}
+.terminal-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--code)}
 .dot{width:12px;height:12px;border-radius:50%}
-.dot.r{background:#dc4c4c}.dot.y{background:#cbc06c}.dot.g{background:#77ca9b}
-.terminal-title{margin-left:8px;font-size:12px;color:var(--muted)}
-.terminal-body{padding:16px;font-size:13px;line-height:1.5;overflow-x:auto;white-space:pre;color:var(--fg)}
+.dot.r{background:var(--red)}.dot.y{background:var(--warn)}.dot.g{background:var(--green)}
+.terminal-title{margin-left:8px;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.terminal-body{padding:var(--sp-4);font-family:var(--font-mono);font-size:13.5px;line-height:1.55;overflow-x:auto;white-space:pre;color:var(--fg)}
 .terminal-body .g{color:var(--green)}.terminal-body .y{color:var(--warn)}.terminal-body .r{color:var(--red)}.terminal-body .b{color:var(--blue)}.terminal-body .m{color:var(--muted)}.terminal-body .t{color:var(--title);font-weight:700}
-section{padding:80px 0}
-section h2{font-size:36px;font-weight:800;color:var(--title);text-align:center;margin-bottom:12px;letter-spacing:-1px}
-section .sub{font-size:16px;color:var(--muted);text-align:center;max-width:640px;margin:0 auto 48px}
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feature{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;transition:border-color .15s}
-.feature:hover{border-color:var(--green)}
-.feature .icon{font-size:24px;margin-bottom:12px}
-.feature h3{color:var(--title);font-size:16px;margin-bottom:8px;font-weight:700}
-.feature p{font-size:14px;color:var(--fg)}
-.install{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;max-width:760px;margin:0 auto}
-.install h3{color:var(--title);margin-bottom:16px;font-size:18px}
-.code{background:#0a0a0a;border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;overflow-x:auto;margin-bottom:12px}
+
+/* ============ sections ============ */
+section{padding:var(--section-y) 0}
+section h2{font-size:clamp(28px,3.4vw,38px);font-weight:800;color:var(--title);text-align:center;margin-bottom:var(--sp-3);letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+.eyebrow{display:block;font-family:var(--font-mono);font-size:13px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--green);margin-bottom:var(--sp-3);text-align:center}
+section .sub{font-size:18px;color:var(--muted);text-align:center;max-width:60ch;margin:0 auto var(--sp-12)}
+
+/* ============ features ============ */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-5)}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px 26px;transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.feature:hover{border-color:var(--green-line);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.45)}
+.feature .icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:var(--radius-sm);background:var(--green-soft);color:var(--green);border:1px solid var(--green-line);margin-bottom:var(--sp-4)}
+.feature .icon svg{width:22px;height:22px}
+.feature h3{color:var(--title);font-size:19px;margin-bottom:var(--sp-2);font-weight:700;letter-spacing:-.01em}
+.feature p{font-size:18px}
+
+/* ============ screens preview ============ */
+.screens{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-6);max-width:var(--container);margin:0 auto}
+.screens .terminal{margin:0;max-width:none}
+
+/* ============ cta band ============ */
+.cta-inline{max-width:760px;margin:var(--sp-6) auto 0;padding:22px 28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap}
+.cta-inline h3{color:var(--title);font-size:20px;letter-spacing:-.01em}
+.cta-inline p{color:var(--muted);font-size:18px}
+
+/* ============ install ============ */
+.install{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:36px;max-width:760px;margin:0 auto}
+.install h3{color:var(--title);margin-bottom:var(--sp-4);font-size:20px;letter-spacing:-.01em}
+.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:var(--sp-4) 18px;font-family:var(--font-mono);font-size:14px;line-height:1.7;overflow-x:auto;margin-bottom:var(--sp-3)}
 .code .prompt{color:var(--green)}
 .code .comment{color:var(--muted)}
-.kbd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:760px;margin:32px auto 0}
-.kbd{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px}
-.kbd kbd{background:#0a0a0a;border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:12px;color:var(--green);min-width:32px;text-align:center}
-.kbd span{font-size:13px;color:var(--fg)}
+.note{font-size:16px;color:var(--muted);margin-top:var(--sp-3)}
+.note code{font-family:var(--font-mono);font-size:15px;color:var(--green);background:var(--code);border:1px solid var(--border);border-radius:6px;padding:2px 6px}
+
+/* ============ keys ============ */
+.kbd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-3);max-width:760px;margin:var(--sp-8) auto 0}
+.kbd{display:flex;align-items:center;gap:var(--sp-3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px var(--sp-4)}
+.kbd kbd{background:var(--code);border:1px solid var(--border-strong);border-radius:6px;padding:3px 9px;font-family:var(--font-mono);font-size:13px;color:var(--green);min-width:34px;text-align:center}
+.kbd span{font-size:16px;color:var(--fg)}
+
+/* ============ faq ============ */
 .faq{max-width:760px;margin:0 auto}
-.faq details{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;padding:16px}
-.faq summary{cursor:pointer;color:var(--title);font-weight:700;font-size:15px;list-style:none}
+.faq details{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:var(--sp-3);padding:20px 22px;transition:border-color .18s ease}
+.faq details[open]{border-color:var(--green-line)}
+.faq summary{cursor:pointer;color:var(--title);font-weight:700;font-size:18px;list-style:none}
 .faq summary::-webkit-details-marker{display:none}
-.faq details p{margin-top:12px;font-size:14px;color:var(--fg)}
-.compare{max-width:920px;margin:32px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.faq details p{margin-top:var(--sp-3);font-size:18px}
+
+/* ============ comparison ============ */
+.compare{max-width:920px;margin:var(--sp-8) auto 0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
 .compare table{width:100%;border-collapse:collapse}
-.compare th,.compare td{padding:12px 16px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}
-.compare th{color:var(--title);font-weight:700}
+.compare th,.compare td{padding:14px 18px;border-bottom:1px solid var(--border);text-align:left;font-size:16px}
+.compare th{background:var(--code);color:var(--title);font-family:var(--font-mono);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em}
 .compare td{color:var(--fg)}
 .compare tr:last-child td{border-bottom:0}
 .compare .yes{color:var(--green)}
 .compare .no{color:var(--muted)}
 .compare td:first-child{color:var(--title);font-weight:600}
-@media(max-width:768px){.compare{margin:24px 0 0}.compare th,.compare td{padding:10px 12px;font-size:13px}}
-.screens{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1120px;margin:0 auto}
-.screens .terminal{margin:0;max-width:none}
-.cta-inline{max-width:760px;margin:24px auto 0;padding:20px 28px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.cta-inline h3{color:var(--title);font-size:18px}
-.cta-inline p{color:var(--muted);font-size:14px}
-.cta-section{text-align:center;padding:96px 0;background:linear-gradient(180deg,transparent,rgba(119,202,155,.05))}
-.cta-section h2{margin-bottom:16px}
-.cta-section p{color:var(--muted);margin-bottom:32px}
-footer{border-top:1px solid var(--border);padding:32px 0;color:var(--muted);font-size:13px}
-footer .container{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
-@media (max-width:768px){
-  .hero h1{font-size:36px}
-  .features{grid-template-columns:1fr}
-  .kbd-grid{grid-template-columns:1fr}
+.compare th:nth-child(2),.compare td:nth-child(2){background:rgba(119,202,155,.06)}
+
+/* ============ final cta + footer ============ */
+.cta-section{text-align:center;padding:clamp(80px,12vw,128px) 0;background:linear-gradient(180deg,transparent,rgba(119,202,155,.06))}
+.cta-section h2{margin-bottom:var(--sp-4)}
+.cta-section p{color:var(--muted);font-size:18px;margin-bottom:var(--sp-8)}
+footer{border-top:1px solid var(--border);padding:40px 0;color:var(--muted);font-size:15px}
+footer .container{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--sp-4);font-family:var(--font-mono)}
+
+/* ============ responsive ============ */
+@media(max-width:900px){
+  .features{grid-template-columns:1fr 1fr}
+  .screens{grid-template-columns:1fr}
+}
+@media(max-width:768px){
   .navlinks{display:none}
+  .install{padding:28px 22px}
+}
+@media(max-width:640px){
+  .features{grid-template-columns:1fr}
+  .compare th,.compare td{padding:10px 12px;font-size:15px}
+  .cta-inline{flex-direction:column;text-align:center}
 }
 </style>
 </head>
@@ -100,6 +173,7 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
     <div class="logo">py<span>mon</span></div>
     <div class="navlinks">
       <a href="#features">Features</a>
+      <a href="#screens">Screens</a>
       <a href="#install">Install</a>
       <a href="#keys">Keys</a>
       <a href="#faq">FAQ</a>
@@ -139,21 +213,23 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
 
 <section id="features">
   <div class="container">
+    <span class="eyebrow">Dashboard</span>
     <h2>Everything you need, in one screen</h2>
     <p class="sub">A dense, btop-inspired dashboard. Every metric colored by severity. Zero wasted space.</p>
     <div class="features">
-      <div class="feature"><div class="icon">📊</div><h3>CPU</h3><p>Overall + per-core bars, frequency, temperature, load average. Gradient green→yellow→red by usage.</p></div>
-      <div class="feature"><div class="icon">🧠</div><h3>Memory</h3><p>RAM and swap with used/available/total. Threshold-colored bars.</p></div>
-      <div class="feature"><div class="icon">💾</div><h3>Disk</h3><p>Physical partitions only, with device, fstype, usage bars and live I/O rates.</p></div>
-      <div class="feature"><div class="icon">🌐</div><h3>Network</h3><p>Per-interface rx/tx rates and totals. Loopback included (configurable).</p></div>
-      <div class="feature"><div class="icon">⚙️</div><h3>Processes</h3><p>Top 50 by CPU/mem. Sort, filter, kill (SIGTERM/SIGKILL) — all from the keyboard.</p></div>
-      <div class="feature"><div class="icon">🌡️</div><h3>Sensors & GPU</h3><p>CPU/GPU temps, fan speeds, NVIDIA GPU utilization and VRAM (optional).</p></div>
+      <div class="feature"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="5"/><line x1="15" y1="2" x2="15" y2="5"/><line x1="9" y1="19" x2="9" y2="22"/><line x1="15" y1="19" x2="15" y2="22"/><line x1="2" y1="9" x2="5" y2="9"/><line x1="2" y1="15" x2="5" y2="15"/><line x1="19" y1="9" x2="22" y2="9"/><line x1="19" y1="15" x2="22" y2="15"/></svg></div><h3>CPU</h3><p>Overall + per-core bars, frequency, temperature, load average. Gradient green→yellow→red by usage.</p></div>
+      <div class="feature"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="4" rx="1"/><rect x="4" y="10" width="16" height="4" rx="1"/><rect x="4" y="16" width="16" height="4" rx="1"/><line x1="8" y1="6" x2="8" y2="6"/><line x1="8" y1="12" x2="8" y2="12"/><line x1="8" y1="18" x2="8" y2="18"/></svg></div><h3>Memory</h3><p>RAM and swap with used/available/total. Threshold-colored bars.</p></div>
+      <div class="feature"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="16.5" cy="15" r="1"/></svg></div><h3>Disk</h3><p>Physical partitions only, with device, fstype, usage bars and live I/O rates.</p></div>
+      <div class="feature"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="3" y1="12" x2="21" y2="12"/><path d="M12 3c2.5 2.6 2.5 15.4 0 18"/><path d="M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg></div><h3>Network</h3><p>Per-interface rx/tx rates and totals. Loopback included (configurable).</p></div>
+      <div class="feature"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></div><h3>Processes</h3><p>Top 50 by CPU/mem. Sort, filter, kill (SIGTERM/SIGKILL) — all from the keyboard.</p></div>
+      <div class="feature"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a2 2 0 0 0-2 2v8.3a4.5 4.5 0 1 0 4 0V5a2 2 0 0 0-2-2z"/></svg></div><h3>Sensors & GPU</h3><p>CPU/GPU temps, fan speeds, NVIDIA GPU utilization and VRAM (optional).</p></div>
     </div>
   </div>
 </section>
 
 <section id="screens">
   <div class="container">
+    <span class="eyebrow">Live preview</span>
     <h2>See it in action</h2>
     <p class="sub">Two live views: the overview dashboard and the keyboard-driven process table.</p>
     <div class="screens">
@@ -186,7 +262,7 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
 <span class="g">  3402  clang-15        42.0  4.1    runnable</span>
 <span class="t">╰──────────────────────────────────────────────────────────────╯</span>
 <span class="m">  [/] filter · [s] sort · [k] kill · [p] pause · [r] refresh</span>
-<span class="t">  Use <span class="green">↑</span> <span class="green">↓</span> to select rows, press <span class="green">Enter</span> for details.</span>
+<span class="t">  Use <span class="g">↑</span> <span class="g">↓</span> to select rows, press <span class="g">Enter</span> for details.</span>
         </div>
       </div>
     </div>
@@ -202,6 +278,7 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
 
 <section id="compare">
   <div class="container">
+    <span class="eyebrow">Comparison</span>
     <h2>Why pymon instead of htop or btop?</h2>
     <p class="sub">pymon is purpose-built for structured, filterable, live insight in the terminal.</p>
     <div class="compare">
@@ -220,7 +297,7 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
         </tbody>
       </table>
     </div>
-    <div class="cta-inline" style="margin-top:24px">
+    <div class="cta-inline">
       <div>
         <h3>Ready to try it?</h3>
         <p>Open-source and MIT-licensed.</p>
@@ -232,6 +309,7 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
 
 <section id="install">
   <div class="container">
+    <span class="eyebrow">Get started</span>
     <h2>Install in 30 seconds</h2>
     <p class="sub">Python 3.12+, Linux only. Three commands. One install.</p>
     <div class="install">
@@ -244,13 +322,14 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
       <div class="code"><span class="prompt">$</span> python3 -m venv .venv
 <span class="prompt">$</span> .venv/bin/pip install -e .
 <span class="prompt">$</span> .venv/bin/pymon</div>
-      <p style="font-size:13px;color:var(--muted);margin-top:12px">Optional GPU support: <code>PYMON_GPU=1 ./install.sh install</code></p>
+      <p class="note">Optional GPU support: <code>PYMON_GPU=1 ./install.sh install</code></p>
     </div>
   </div>
 </section>
 
 <section id="keys">
   <div class="container">
+    <span class="eyebrow">Shortcuts</span>
     <h2>Keyboard-driven</h2>
     <p class="sub">No mouse needed. Everything reachable from the keyboard.</p>
     <div class="kbd-grid">
@@ -272,6 +351,7 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
 
 <section id="faq">
   <div class="container">
+    <span class="eyebrow">Answers</span>
     <h2>FAQ</h2>
     <div class="faq">
       <details><summary>Is it cross-platform?</summary><p>Linux only. It relies on psutil and Linux-specific paths like /proc.</p></details>
