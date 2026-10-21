@@ -237,17 +237,28 @@ class PymonApp(App):
     def _apply(self, snap: SystemSnapshot) -> None:
         self.snapshot = snap
         # update config sort state already in config
-        self.query_one("#header", HeaderBar).update_data(snap, self.config)
-        self.query_one("#statusbar", Static).update(self._status_text())
-        self.query_one("#cpu", CpuPanel).update_data(snap, self.config)
-        self.query_one("#mem", MemoryPanel).update_data(snap, self.config)
-        self.query_one("#disk", DiskPanel).update_data(snap, self.config)
-        self.query_one("#net", NetworkPanel).update_data(snap, self.config)
-        self.query_one("#gpu", GpuPanel).update_data(snap, self.config)
-        self.query_one("#sensors", SensorsPanel).update_data(snap, self.config)
-        self.query_one("#sysinfo", SystemInfoPanel).update_data(snap, self.config)
-        table = self.query_one("#processes", ProcessTable)
-        table.update_data(snap, self.config, self._filter_text)
+        updates = [
+            ("#header", lambda w: w.update_data(snap, self.config)),
+            ("#cpu", lambda w: w.update_data(snap, self.config)),
+            ("#mem", lambda w: w.update_data(snap, self.config)),
+            ("#disk", lambda w: w.update_data(snap, self.config)),
+            ("#net", lambda w: w.update_data(snap, self.config)),
+            ("#gpu", lambda w: w.update_data(snap, self.config)),
+            ("#sensors", lambda w: w.update_data(snap, self.config)),
+            ("#sysinfo", lambda w: w.update_data(snap, self.config)),
+        ]
+        for selector, updater in updates:
+            try:
+                updater(self.query_one(selector))
+            except Exception as e:  # pragma: no cover
+                logger.exception("panel update failed for %s: %s", selector, e)
+        with contextlib.suppress(Exception):
+            self.query_one("#statusbar", Static).update(self._status_text())
+        try:
+            table = self.query_one("#processes", ProcessTable)
+            table.update_data(snap, self.config, self._filter_text)
+        except Exception as e:  # pragma: no cover
+            logger.exception("process table update failed: %s", e)
 
     def _status_text(self) -> str:
         parts = [
