@@ -66,6 +66,21 @@ section .sub{font-size:16px;color:var(--muted);text-align:center;max-width:640px
 .faq summary{cursor:pointer;color:var(--title);font-weight:700;font-size:15px;list-style:none}
 .faq summary::-webkit-details-marker{display:none}
 .faq details p{margin-top:12px;font-size:14px;color:var(--fg)}
+.compare{max-width:920px;margin:32px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.compare table{width:100%;border-collapse:collapse}
+.compare th,.compare td{padding:12px 16px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}
+.compare th{color:var(--title);font-weight:700}
+.compare td{color:var(--fg)}
+.compare tr:last-child td{border-bottom:0}
+.compare .yes{color:var(--green)}
+.compare .no{color:var(--muted)}
+.compare td:first-child{color:var(--title);font-weight:600}
+@media(max-width:768px){.compare{margin:24px 0 0}.compare th,.compare td{padding:10px 12px;font-size:13px}}
+.screens{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1120px;margin:0 auto}
+.screens .terminal{margin:0;max-width:none}
+.cta-inline{max-width:760px;margin:24px auto 0;padding:20px 28px;background:var(--surface);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.cta-inline h3{color:var(--title);font-size:18px}
+.cta-inline p{color:var(--muted);font-size:14px}
 .cta-section{text-align:center;padding:96px 0;background:linear-gradient(180deg,transparent,rgba(119,202,155,.05))}
 .cta-section h2{margin-bottom:16px}
 .cta-section p{color:var(--muted);margin-bottom:32px}
@@ -96,9 +111,9 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
 <section class="hero">
   <div class="container">
     <h1>Monitor your Linux box<br><span class="accent">without leaving the terminal.</span></h1>
-    <p>pymon is a beautiful, fast system monitor TUI built with psutil and Textual. CPU, memory, disk, network, processes, sensors and GPU — in one dashboard.</p>
+    <p>pymon surfaces CPU, memory, disk, network, processes, sensors and GPU in one clean, keyboard-driven dashboard — so you never have to switch tools mid-flow.</p>
     <div class="buttons">
-      <a class="btn btn-primary" href="#install">Install in 30 seconds</a>
+      <a class="btn btn-primary" href="#install">Install pymon →</a>
       <a class="btn btn-ghost" href="https://github.com/kenjaku-dev/pymon">View on GitHub</a>
     </div>
     <div class="trust">Open source · MIT licensed · <span>Python 3.12+</span> · Linux only</div>
@@ -137,10 +152,88 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
   </div>
 </section>
 
+<section id="screens">
+  <div class="container">
+    <h2>See it in action</h2>
+    <p class="sub">Two live views: the overview dashboard and the keyboard-driven process table.</p>
+    <div class="screens">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="terminal-title">pymon — overview</span>
+        </div>
+        <div class="terminal-body"><span class="t">╭─┐cpu┌────────────────────────────────────────────────────────╮</span>
+<span class="g">  CPU  12.4%  ██████████░░░░░░░░░░</span>   <span class="m">freq 3600 MHz   temp 48.0°C</span>
+<span class="m">  c0  14.2% ██████░░░░   c1  10.1% █████░░░░░</span>
+<span class="m">  c2  13.8% ██████░░░░   c3  11.5% █████░░░░░</span>
+<span class="t">╰──────────────────────────────────────────────────────────────╯</span>
+<span class="t">╭─┐mem┌─────────────────────╮</span>  <span class="t">╭─┐disk┌────────────────────╮</span>  <span class="t">╭─┐net┌────────────────────╮</span>
+<span class="g">  RAM  34.2%  ████████░░░░░░░░</span>  <span class="m">  /  (sda2, btrfs)</span>       <span class="m">  eth0 (up)</span>
+<span class="m">  5.4 GiB / 16.0 GiB avail</span>   <span class="m">  42%  ████████░░  80G/200G</span>  <span class="m">  ↓ 1.2 MB/s   ↑ 340 KB/s</span>
+<span class="m">  SWAP  2.1%  █░░░░░░░░░░░░░░░</span>  <span class="m">  /home  28%  █████░░  40G/150G</span>  <span class="m">  rx 1.4 GB  tx 88 MB</span>
+<span class="t">╰────────────────────────────╯</span>  <span class="t">╰────────────────────────────╯</span>  <span class="t">╰────────────────────────────╯</span></div>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="terminal-title">pymon — processes</span>
+        </div>
+        <div class="terminal-body"><span class="t">╭─┐processes┌──────────────────────────────────────────────────╮</span>
+<span class="m">PID   NAME             CPU%  MEM%   STATUS</span>
+<span class="g">  1234  systemd         0.1   0.1    idle</span>
+<span class="g">  2156  gnome-shell     4.2   6.8    sleeping</span>
+<span class="g">  3271  compilation     98.2  12.4   running</span>
+<span class="g">  3402  clang-15        42.0  4.1    runnable</span>
+<span class="t">╰──────────────────────────────────────────────────────────────╯</span>
+<span class="m">  [/] filter · [s] sort · [k] kill · [p] pause · [r] refresh</span>
+<span class="t">  Use <span class="green">↑</span> <span class="green">↓</span> to select rows, press <span class="green">Enter</span> for details.</span>
+        </div>
+      </div>
+    </div>
+    <div class="cta-inline">
+      <div>
+        <h3>Try pymon now</h3>
+        <p>3 commands. 30 seconds.</p>
+      </div>
+      <a class="btn btn-primary" href="#install">Install pymon →</a>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="container">
+    <h2>Why pymon instead of htop or btop?</h2>
+    <p class="sub">pymon is purpose-built for structured, filterable, live insight in the terminal.</p>
+    <div class="compare">
+      <table>
+        <thead>
+          <tr><th>Feature</th><th>pymon</th><th>htop</th><th>btop</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Configure thresholds + alerts</td><td class="yes">Yes</td><td class="no">Limited</td><td class="no">No</td></tr>
+          <tr><td>Per-interface network rates</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td></tr>
+          <tr><td>Process filter + regex search</td><td class="yes">Yes</td><td class="no">Basic</td><td class="no">Basic</td></tr>
+          <tr><td>Per-process kill from UI</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+          <tr><td>Snapshot export (JSON/CSV)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td></tr>
+          <tr><td>NVIDIA GPU + VRAM view</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td></tr>
+          <tr><td>Open-source &amp; CLI-first</td><td class="yes">MIT</td><td class="yes">GPL</td><td class="yes">Apache</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cta-inline" style="margin-top:24px">
+      <div>
+        <h3>Ready to try it?</h3>
+        <p>Open-source and MIT-licensed.</p>
+      </div>
+      <a class="btn btn-primary" href="#install">Install pymon →</a>
+    </div>
+  </div>
+</section>
+
 <section id="install">
   <div class="container">
     <h2>Install in 30 seconds</h2>
-    <p class="sub">Python 3.12+, Linux only. One command.</p>
+    <p class="sub">Python 3.12+, Linux only. Three commands. One install.</p>
     <div class="install">
       <h3>Quick install</h3>
       <div class="code"><span class="prompt">$</span> git clone https://github.com/kenjaku-dev/pymon.git
