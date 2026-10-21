@@ -58,12 +58,12 @@ def load_config(path: Path | None = None) -> Config:
     cfg.process_row_cap = int(raw.get("process_row_cap", cfg.process_row_cap))
     if isinstance(raw.get("process_columns"), list):
         cfg.process_columns = [str(x) for x in raw["process_columns"]]
-    thr = raw.get("thresholds")
-    if isinstance(thr, dict):
+    thresholds_raw = raw.get("thresholds")
+    if isinstance(thresholds_raw, dict):
         cfg.thresholds = Thresholds(
-            cpu=float(thr.get("cpu", cfg.thresholds.cpu)),
-            memory=float(thr.get("memory", cfg.thresholds.memory)),
-            disk=float(thr.get("disk", cfg.thresholds.disk)),
+            cpu=float(thresholds_raw.get("cpu", cfg.thresholds.cpu)),
+            memory=float(thresholds_raw.get("memory", cfg.thresholds.memory)),
+            disk=float(thresholds_raw.get("disk", cfg.thresholds.disk)),
         )
     cfg.show_all_interfaces = bool(raw.get("show_all_interfaces", cfg.show_all_interfaces))
     cfg.show_all_partitions = bool(raw.get("show_all_partitions", cfg.show_all_partitions))

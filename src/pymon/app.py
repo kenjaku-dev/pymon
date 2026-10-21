@@ -276,15 +276,15 @@ class PymonApp(App):
 
     def action_toggle_filter(self) -> None:
         self._filter_visible = not self._filter_visible
-        fb = self.query_one("#filterbar", Input)
+        filter_bar = self.query_one("#filterbar", Input)
         if self._filter_visible:
-            fb.add_class("visible")
-            fb.display = True
-            fb.focus()
+            filter_bar.add_class("visible")
+            filter_bar.display = True
+            filter_bar.focus()
         else:
-            fb.display = False
+            filter_bar.display = False
             self._filter_text = ""
-            fb.value = ""
+            filter_bar.value = ""
             if self.snapshot is not None:
                 self._apply(self.snapshot)
 

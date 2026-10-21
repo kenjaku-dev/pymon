@@ -166,8 +166,8 @@ class SystemCollector:
         except Exception:
             pass
         try:
-            la = psutil.getloadavg()
-            info.load_avg = (float(la[0]), float(la[1]), float(la[2]))
+            load_avg = psutil.getloadavg()
+            info.load_avg = (float(load_avg[0]), float(load_avg[1]), float(load_avg[2]))
         except (AttributeError, OSError):
             info.load_avg = None
         # temperature
@@ -189,16 +189,16 @@ class SystemCollector:
         return info
 
     def _collect_memory(self) -> MemInfo:
-        vm = psutil.virtual_memory()
-        sm = psutil.swap_memory()
+        virtual_mem = psutil.virtual_memory()
+        swap_mem = psutil.swap_memory()
         return MemInfo(
-            total=int(vm.total),
-            used=int(vm.used),
-            available=int(vm.available),
-            percent=float(vm.percent),
-            swap_total=int(sm.total),
-            swap_used=int(sm.used),
-            swap_percent=float(sm.percent),
+            total=int(virtual_mem.total),
+            used=int(virtual_mem.used),
+            available=int(virtual_mem.available),
+            percent=float(virtual_mem.percent),
+            swap_total=int(swap_mem.total),
+            swap_used=int(swap_mem.used),
+            swap_percent=float(swap_mem.percent),
         )
 
     def _collect_disks(self, show_all: bool) -> list[DiskPartition]:
@@ -439,7 +439,7 @@ class SystemCollector:
                 or "AMD GPU"
             )
 
-            def _num(data: dict, key: str) -> float | None:
+            def _to_number(data: dict, key: str) -> float | None:
                 v = data.get(key)
                 if v is None:
                     return None
@@ -451,18 +451,22 @@ class SystemCollector:
                 except ValueError:
                     return None
 
-            util = _num(info, "GPU use (%)")
-            mem_used_mb = _num(info, "GPU Memory (Used) (MB)") or _num(info, "VRAM (Used) (MB)")
-            mem_total_mb = _num(info, "GPU Memory (Total) (MB)") or _num(info, "VRAM (Total) (MB)")
+            utilization = _to_number(info, "GPU use (%)")
+            mem_used_mb = _to_number(info, "GPU Memory (Used) (MB)") or _to_number(
+                info, "VRAM (Used) (MB)"
+            )
+            mem_total_mb = _to_number(info, "GPU Memory (Total) (MB)") or _to_number(
+                info, "VRAM (Total) (MB)"
+            )
             mem_used = int(mem_used_mb * 1024 * 1024) if mem_used_mb is not None else None
             mem_total = int(mem_total_mb * 1024 * 1024) if mem_total_mb is not None else None
-            temp = _num(info, "Temperature (Sensor edge) (C)") or _num(
+            temp = _to_number(info, "Temperature (Sensor edge) (C)") or _to_number(
                 info, "Temperature (Sensor memory) (C)"
             )
             gpus.append(
                 GpuInfo(
                     name=str(name),
-                    utilization=util,
+                    utilization=utilization,
                     memory_used=mem_used,
                     memory_total=mem_total,
                     temperature=temp,
@@ -503,13 +507,13 @@ class SystemCollector:
                 name = pynvml.nvmlDeviceGetName(h)
                 if isinstance(name, bytes):
                     name = name.decode("utf-8", "replace")
-                util = None
+                utilization = None
                 mem_used = None
                 mem_total = None
                 temp = None
                 try:
                     u = pynvml.nvmlDeviceGetUtilizationRates(h)
-                    util = float(u.gpu)
+                    utilization = float(u.gpu)
                 except Exception:
                     pass
                 try:
@@ -523,7 +527,7 @@ class SystemCollector:
                 gpus.append(
                     GpuInfo(
                         name=name,
-                        utilization=util,
+                        utilization=utilization,
                         memory_used=mem_used,
                         memory_total=mem_total,
                         temperature=temp,
@@ -567,11 +571,11 @@ def collect_system_info() -> dict[str, str]:
             info["CPU frequency"] = f"{freq.current:.0f} MHz (max {freq.max:.0f})"
     except Exception:
         pass
-    vm = psutil.virtual_memory()
-    info["Memory total"] = _human_bytes(vm.total)
-    info["Memory available"] = _human_bytes(vm.available)
-    sm = psutil.swap_memory()
-    info["Swap total"] = _human_bytes(sm.total)
+    virtual_mem = psutil.virtual_memory()
+    info["Memory total"] = _human_bytes(virtual_mem.total)
+    info["Memory available"] = _human_bytes(virtual_mem.available)
+    swap_mem = psutil.swap_memory()
+    info["Swap total"] = _human_bytes(swap_mem.total)
     # disks
     try:
         parts = psutil.disk_partitions(all=False)

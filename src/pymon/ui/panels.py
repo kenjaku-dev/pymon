@@ -19,17 +19,17 @@ class HeaderBar(Static):
     """
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
-        t = Text()
-        t.append(f"{snap.hostname}", style="bold cyan")
-        t.append("  │  up ")
-        t.append(_fmt_uptime(snap.uptime_seconds), style="green")
+        text = Text()
+        text.append(f"{snap.hostname}", style="bold cyan")
+        text.append("  │  up ")
+        text.append(_fmt_uptime(snap.uptime_seconds), style="green")
         if snap.cpu.load_avg:
             la = snap.cpu.load_avg
-            t.append(f"  │  load {la[0]:.2f} {la[1]:.2f} {la[2]:.2f}")
-        t.append(f"  │  {snap.timestamp and _fmt_time(snap.timestamp)}")
+            text.append(f"  │  load {la[0]:.2f} {la[1]:.2f} {la[2]:.2f}")
+        text.append(f"  │  {snap.timestamp and _fmt_time(snap.timestamp)}")
         if snap.errors:
-            t.append(f"  │  errors: {len(snap.errors)}", style="red")
-        self.update(t)
+            text.append(f"  │  errors: {len(snap.errors)}", style="red")
+        self.update(text)
 
 
 class CpuPanel(Static):
@@ -43,34 +43,34 @@ class CpuPanel(Static):
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
         cpu = snap.cpu
-        thr = config.thresholds.cpu
+        threshold = config.thresholds.cpu
         self._history.append(cpu.overall)
-        t = Text()
-        style = _usage_style(cpu.overall, thr)
-        t.append(f"CPU  {cpu.overall:5.1f}%  ", style=style)
-        t.append(bar(cpu.overall, 18), style=style.split()[0])
-        if cpu.overall >= thr:
-            t.append("  ⚠", style="red bold")
-        t.append("\n")
-        t.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
+        text = Text()
+        style = _usage_style(cpu.overall, threshold)
+        text.append(f"CPU  {cpu.overall:5.1f}%  ", style=style)
+        text.append(bar(cpu.overall, 18), style=style.split()[0])
+        if cpu.overall >= threshold:
+            text.append("  ⚠", style="red bold")
+        text.append("\n")
+        text.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
         if cpu.freq_mhz:
-            t.append(f"freq {cpu.freq_mhz:7.0f} MHz   ", style="dim")
+            text.append(f"freq {cpu.freq_mhz:7.0f} MHz   ", style="dim")
         if cpu.temp_c is not None:
-            t.append(f"temp {cpu.temp_c:4.1f}°C", style="dim")
-        t.append("\n")
+            text.append(f"temp {cpu.temp_c:4.1f}°C", style="dim")
+        text.append("\n")
         # per-core
         cores = cpu.per_core
         for i, c in enumerate(cores):
-            st = _usage_style(c, thr).split()[0]
-            t.append(f"c{i:<2} {c:5.1f}% ", style=st)
-            t.append(bar(c, 10), style=st)
+            core_style = _usage_style(c, threshold).split()[0]
+            text.append(f"c{i:<2} {c:5.1f}% ", style=core_style)
+            text.append(bar(c, 10), style=core_style)
             if (i + 1) % 2 == 0:
-                t.append("\n")
+                text.append("\n")
             else:
-                t.append("  ")
+                text.append("  ")
         if len(cores) % 2:
-            t.append("\n")
-        self.update(t)
+            text.append("\n")
+        self.update(text)
 
 
 class MemoryPanel(Static):
@@ -84,27 +84,27 @@ class MemoryPanel(Static):
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
         m = snap.memory
-        thr = config.thresholds.memory
+        threshold = config.thresholds.memory
         self._history.append(m.percent)
-        t = Text()
-        st = _usage_style(m.percent, thr)
-        t.append(f"RAM  {m.percent:5.1f}%  ", style=st)
-        t.append(bar(m.percent, 18), style=st.split()[0])
-        if m.percent >= thr:
-            t.append("  ⚠", style="red bold")
-        t.append("\n")
-        t.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
-        t.append(
+        text = Text()
+        style = _usage_style(m.percent, threshold)
+        text.append(f"RAM  {m.percent:5.1f}%  ", style=style)
+        text.append(bar(m.percent, 18), style=style.split()[0])
+        if m.percent >= threshold:
+            text.append("  ⚠", style="red bold")
+        text.append("\n")
+        text.append(f"hist {sparkline(self._history, 24)}\n", style="dim")
+        text.append(
             f"{human_bytes(m.used)} / {human_bytes(m.total)}   avail {human_bytes(m.available)}\n",
             style="dim",
         )
         # swap
-        ss = _usage_style(m.swap_percent, thr).split()[0]
-        t.append(f"SWAP {m.swap_percent:5.1f}%  ", style=ss)
-        t.append(bar(m.swap_percent, 18), style=ss)
-        t.append("\n")
-        t.append(f"{human_bytes(m.swap_used)} / {human_bytes(m.swap_total)}", style="dim")
-        self.update(t)
+        swap_style = _usage_style(m.swap_percent, threshold).split()[0]
+        text.append(f"SWAP {m.swap_percent:5.1f}%  ", style=swap_style)
+        text.append(bar(m.swap_percent, 18), style=swap_style)
+        text.append("\n")
+        text.append(f"{human_bytes(m.swap_used)} / {human_bytes(m.swap_total)}", style="dim")
+        self.update(text)
 
 
 class DiskPanel(Static):
@@ -113,31 +113,31 @@ class DiskPanel(Static):
     """
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
-        thr = config.thresholds.disk
-        t = Text()
+        threshold = config.thresholds.disk
+        text = Text()
         for d in sorted(snap.disks, key=lambda x: x.mountpoint):
-            st = _usage_style(d.percent, thr)
-            t.append(f"{d.mountpoint}", style="bold")
-            t.append(f"  ({d.device}, {d.fstype})\n", style="dim")
-            t.append(f"  {d.percent:5.1f}%  ", style=st)
-            t.append(bar(d.percent, 20), style=st.split()[0])
-            t.append(f"  {human_bytes(d.used)}/{human_bytes(d.total)}\n", style="dim")
+            disk_style = _usage_style(d.percent, threshold)
+            text.append(f"{d.mountpoint}", style="bold")
+            text.append(f"  ({d.device}, {d.fstype})\n", style="dim")
+            text.append(f"  {d.percent:5.1f}%  ", style=disk_style)
+            text.append(bar(d.percent, 20), style=disk_style.split()[0])
+            text.append(f"  {human_bytes(d.used)}/{human_bytes(d.total)}\n", style="dim")
         if snap.disk_io is not None:
             dio = snap.disk_io
-            t.append(
+            text.append(
                 f"IO  R {human_rate(dio.read_rate)}  W {human_rate(dio.write_rate)}",
                 style="dim",
             )
         if getattr(snap, "disk_io_per_device", None):
             for dev in sorted(snap.disk_io_per_device)[:5]:
                 dio = snap.disk_io_per_device[dev]
-                t.append(
+                text.append(
                     f"  {dev}: R {human_rate(dio.read_rate)}  W {human_rate(dio.write_rate)}\n",
                     style="dim",
                 )
         if not snap.disks:
-            t.append("no disks", style="dim")
-        self.update(t)
+            text.append("no disks", style="dim")
+        self.update(text)
 
 
 class NetworkPanel(Static):
@@ -156,26 +156,26 @@ class NetworkPanel(Static):
         total_send = sum(n.send_rate for n in snap.network)
         self._recv_history.append(total_recv)
         self._send_history.append(total_send)
-        t = Text()
+        text = Text()
         for n in snap.network:
             state = "up" if n.is_up else "down"
             st = "green" if n.is_up else "red"
-            t.append(f"{n.name} ", style="bold")
-            t.append(f"({state})\n", style=st)
-            t.append(
+            text.append(f"{n.name} ", style="bold")
+            text.append(f"({state})\n", style=st)
+            text.append(
                 f"  ↓ {human_rate(n.recv_rate):>14}   ↑ {human_rate(n.send_rate):>14}\n",
                 style="dim",
             )
-            t.append(
+            text.append(
                 f"  rx {human_bytes(n.bytes_recv)}  tx {human_bytes(n.bytes_sent)}\n",
                 style="dim",
             )
         if not snap.network:
-            t.append("no interfaces", style="dim")
+            text.append("no interfaces", style="dim")
         else:
-            t.append(f"rx {sparkline(self._recv_history, 24)}\n", style="dim")
-            t.append(f"tx {sparkline(self._send_history, 24)}\n", style="dim")
-        self.update(t)
+            text.append(f"rx {sparkline(self._recv_history, 24)}\n", style="dim")
+            text.append(f"tx {sparkline(self._send_history, 24)}\n", style="dim")
+        self.update(text)
 
 
 class GpuPanel(Static):
@@ -184,33 +184,33 @@ class GpuPanel(Static):
     """
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
-        t = Text()
+        text = Text()
         if not snap.gpus:
-            t.append("No GPU detected", style="dim")
-            self.update(t)
+            text.append("No GPU detected", style="dim")
+            self.update(text)
             return
         for g in snap.gpus:
             if not g.available:
-                t.append(f"{g.name}\n", style="dim")
+                text.append(f"{g.name}\n", style="dim")
                 if g.error:
-                    t.append(f"  {g.error}\n", style="red dim")
+                    text.append(f"  {g.error}\n", style="red dim")
                 continue
-            t.append(f"{g.name}\n", style="bold")
+            text.append(f"{g.name}\n", style="bold")
             if g.utilization is not None:
                 st = _usage_style(g.utilization, 90).split()[0]
-                t.append(f"  util {g.utilization:5.1f}%  ", style=st)
-                t.append(bar(g.utilization, 16), style=st)
-                t.append("\n")
+                text.append(f"  util {g.utilization:5.1f}%  ", style=st)
+                text.append(bar(g.utilization, 16), style=st)
+                text.append("\n")
             if g.memory_used is not None and g.memory_total:
                 pct = g.memory_used / g.memory_total * 100
-                t.append(
+                text.append(
                     f"  vram {human_bytes(g.memory_used)}/"
                     f"{human_bytes(g.memory_total)} ({pct:.0f}%)\n",
                     style="dim",
                 )
             if g.temperature is not None:
-                t.append(f"  temp {g.temperature:.1f}°C\n", style="dim")
-        self.update(t)
+                text.append(f"  temp {g.temperature:.1f}°C\n", style="dim")
+        self.update(text)
 
 
 class SensorsPanel(Static):
@@ -219,23 +219,23 @@ class SensorsPanel(Static):
     """
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
-        t = Text()
+        text = Text()
         if not snap.sensors:
-            t.append("no sensors", style="dim")
-            self.update(t)
+            text.append("no sensors", style="dim")
+            self.update(text)
             return
         for s in snap.sensors:
             label = s.label or s.chip
-            t.append(f"{s.chip}/{label}: ", style="bold")
-            t.append(f"{s.current:.1f}")
+            text.append(f"{s.chip}/{label}: ", style="bold")
+            text.append(f"{s.current:.1f}")
             if s.high is not None:
-                t.append(f"  (high {s.high:.0f})", style="dim")
+                text.append(f"  (high {s.high:.0f})", style="dim")
             if s.current >= (s.critical or 1e9):
-                t.append("  CRIT", style="red bold")
+                text.append("  CRIT", style="red bold")
             elif s.high is not None and s.current >= s.high:
-                t.append("  HIGH", style="yellow")
-            t.append("\n")
-        self.update(t)
+                text.append("  HIGH", style="yellow")
+            text.append("\n")
+        self.update(text)
 
 
 class SystemInfoPanel(Static):
@@ -245,11 +245,11 @@ class SystemInfoPanel(Static):
 
     def update_data(self, snap: SystemSnapshot, config: Config) -> None:
         info = get_system_info()
-        t = Text()
+        text = Text()
         for key, val in info.items():
-            t.append(f"{key:<24}", style="bold cyan")
-            t.append(f"{val}\n")
-        self.update(t)
+            text.append(f"{key:<24}", style="bold cyan")
+            text.append(f"{val}\n")
+        self.update(text)
 
 
 class ProcessTable(DataTable):
