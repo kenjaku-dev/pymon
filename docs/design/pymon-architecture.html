@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pymon — Architecture Map</title>
+<style>
+:root{
+  --bg:#020617;--panel:#0f172a;--border:#1e293b;--muted:#94a3b8;--text:#e2e8f0;
+  --cyan:#22d3ee;--emerald:#34d399;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--orange:#fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace;background:radial-gradient(1200px 600px at 10% -10%,#0ea5e922,transparent),radial-gradient(900px 500px at 90% 10%,#a78bfa22,transparent),var(--bg);color:var(--text);min-height:100vh;padding:2rem;line-height:1.5}
+.container{max-width:1280px;margin:0 auto}
+.header{margin-bottom:2rem}
+.badge{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .75rem;border:1px solid var(--border);border-radius:999px;background:rgba(15,23,42,.6);font-size:.75rem;color:var(--muted)}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+h1{font-size:2.2rem;font-weight:800;letter-spacing:-.03em;margin:.75rem 0 .25rem;background:linear-gradient(90deg,var(--cyan),var(--emerald),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:.95rem;max-width:720px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:1rem;margin-top:1.5rem}
+.card{background:linear-gradient(180deg,rgba(15,23,42,.85),rgba(2,6,23,.85));border:1px solid var(--border);border-radius:1rem;padding:1rem 1.1rem;backdrop-filter:blur(8px);transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-2px);border-color:#334155}
+.card h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.6rem}
+.card p{font-size:.85rem;color:#cbd5e1}
+.span-4{grid-column:span 4}
+.span-6{grid-column:span 6}
+.span-12{grid-column:span 12}
+.tag{display:inline-block;font-size:.7rem;padding:.15rem .45rem;border-radius:.4rem;margin:.15rem .15rem 0 0;border:1px solid var(--border);color:var(--muted)}
+.tag.cyan{color:var(--cyan);border-color:#22d3ee44}
+.tag.emerald{color:var(--emerald);border-color:#34d39944}
+.tag.violet{color:var(--violet);border-color:#a78bfa44}
+.tag.amber{color:var(--amber);border-color:#fbbf2444}
+.tag.rose{color:var(--rose);border-color:#fb718544}
+.tag.orange{color:var(--orange);border-color:#fb923c44}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-top:.6rem}
+.node{padding:.5rem .8rem;border-radius:.6rem;border:1px solid var(--border);background:rgba(2,6,23,.7);font-size:.8rem;white-space:nowrap}
+.arrow{color:var(--cyan);font-weight:700}
+.layer{position:relative}
+.layer-title{font-size:1rem;font-weight:700;margin-bottom:.8rem;display:flex;align-items:center;gap:.6rem}
+.layer-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+.kpi{display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem}
+.kpi div{background:rgba(15,23,42,.7);border:1px solid var(--border);border-radius:.7rem;padding:.6rem .9rem;min-width:120px}
+.kpi b{display:block;font-size:1.1rem;color:var(--cyan)}
+.kpi span{font-size:.7rem;color:var(--muted)}
+.footer{margin-top:2rem;color:var(--muted);font-size:.75rem;text-align:center}
+@media(max-width:900px){.span-4,.span-6{grid-column:span 12}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="badge"><span class="pulse"></span> pymon v2.0.0 · architecture map</div>
+    <h1>pymon</h1>
+    <p class="sub">A Linux system-monitor TUI built with psutil + Textual. This map shows how the project is structured, how data flows, and where the seams are.</p>
+  </div>
+
+  <div class="grid">
+    <div class="card span-12">
+      <h3>Data flow</h3>
+      <div class="flow">
+        <div class="node">CLI / Config</div><span class="arrow">→</span>
+        <div class="node">PymonApp</div><span class="arrow">→</span>
+        <div class="node">Worker thread</div><span class="arrow">→</span>
+        <div class="node">SystemCollector</div><span class="arrow">→</span>
+        <div class="node">SystemSnapshot</div><span class="arrow">→</span>
+        <div class="node">_apply (UI thread)</div><span class="arrow">→</span>
+        <div class="node">Panels / Table</div>
+      </div>
+      <div class="kpi">
+        <div><b>1s</b><span>default refresh</span></div>
+        <div><b>3</b><span>tabs</span></div>
+        <div><b>17</b><span>tests</span></div>
+        <div><b>0</b><span>blocking UI calls</span></div>
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h3>Entry & Config</h3>
+      <p>__main__.py parses CLI flags, loads config JSON, applies overrides, runs app.</p>
+      <div class="tag cyan">argparse</div><div class="tag cyan">Config</div><div class="tag cyan">Thresholds</div>
+    </div>
+    <div class="card span-4">
+      <h3>Application core</h3>
+      <p>PymonApp holds collector + snapshot, bindings, tick loop, pause/filter/sort/kill.</p>
+      <div class="tag emerald">Textual App</div><div class="tag emerald">Worker</div><div class="tag emerald">Modals</div>
+    </div>
+    <div class="card span-4">
+      <h3>Collectors</h3>
+      <p>SystemCollector gathers CPU/mem/disk/net/procs/sensors/GPU; records errors; thread-safe.</p>
+      <div class="tag violet">psutil</div><div class="tag violet">pynvml</div><div class="tag violet">rocm-smi</div>
+    </div>
+
+    <div class="card span-6">
+      <h3>UI panels</h3>
+      <p>HeaderBar, CpuPanel, MemoryPanel, DiskPanel, NetworkPanel, GpuPanel, SensorsPanel, SystemInfoPanel, ProcessTable.</p>
+      <div class="tag amber">Static</div><div class="tag amber">DataTable</div><div class="tag amber">Sparklines</div>
+    </div>
+    <div class="card span-6">
+      <h3>Models</h3>
+      <p>Dataclasses: CpuInfo, MemInfo, DiskPartition, NetInterface, ProcessInfo, GpuInfo, SystemSnapshot.</p>
+      <div class="tag rose">dataclasses</div><div class="tag rose">typed</div>
+    </div>
+
+    <div class="card span-12">
+      <h3>Modules</h3>
+      <div class="flow">
+        <div class="node">src/pymon/__main__.py</div><span class="arrow">→</span>
+        <div class="node">app.py</div><span class="arrow">→</span>
+        <div class="node">collectors/system.py</div><span class="arrow">→</span>
+        <div class="node">collectors/models.py</div>
+      </div>
+      <div class="flow" style="margin-top:.6rem">
+        <div class="node">ui/panels.py</div><span class="arrow">←</span>
+        <div class="node">utils.py</div><span class="arrow">·</span>
+        <div class="node">config.py</div><span class="arrow">·</span>
+        <div class="node">tests/</div>
+      </div>
+    </div>
+
+    <div class="card span-4">
+      <h3>Quality gates</h3>
+      <p>pytest, ruff, pyright, GitHub Actions CI, pre-commit hooks.</p>
+      <div class="tag orange">CI</div><div class="tag orange">types</div><div class="tag orange">lint</div>
+    </div>
+    <div class="card span-4">
+      <h3>Packaging</h3>
+      <p>pyproject.toml, editable install, console script, optional GPU extras.</p>
+      <div class="tag orange">setuptools</div><div class="tag orange">pip</div>
+    </div>
+    <div class="card span-4">
+      <h3>Docs</h3>
+      <p>README, context.md, design doc, naming report, this map.</p>
+      <div class="tag orange">docs/</div>
+    </div>
+  </div>
+
+  <div class="footer">pymon architecture map · single-file · offline-renderable</div>
+</div>
+</body>
+</html>
