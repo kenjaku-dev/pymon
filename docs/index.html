@@ -6,6 +6,37 @@
 <meta name="theme-color" content="#060907">
 <title>pymon — Linux System Monitor TUI</title>
 <meta name="description" content="A beautiful, fast Linux system monitor TUI built with psutil and Textual. CPU, memory, disk, network, processes, sensors, GPU — all in one terminal dashboard.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23060907'/%3E%3Cpath d='M15 19l11 13-11 13' fill='none' stroke='%2377ca9b' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='34' y='41' width='16' height='6' rx='3' fill='%2377ca9b'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="pymon">
+<meta property="og:title" content="pymon — Linux System Monitor TUI">
+<meta property="og:description" content="A beautiful, fast Linux system monitor TUI built with psutil and Textual. CPU, memory, disk, network, processes, sensors, GPU — all in one terminal dashboard.">
+<meta property="og:url" content="https://kenjaku-dev.github.io/pymon/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://kenjaku-dev.github.io/pymon/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="pymon — your Linux box, monitored in the terminal">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="pymon — Linux System Monitor TUI">
+<meta name="twitter:description" content="A beautiful, fast Linux system monitor TUI built with psutil and Textual.">
+<meta name="twitter:image" content="https://kenjaku-dev.github.io/pymon/assets/og.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "pymon",
+  "operatingSystem": "Linux",
+  "applicationCategory": "UtilitiesApplication",
+  "description": "A beautiful, fast Linux system monitor TUI built with psutil and Textual.",
+  "softwareVersion": "2.0.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "url": "https://kenjaku-dev.github.io/pymon/",
+  "codeRepository": "https://github.com/kenjaku-dev/pymon",
+  "author": {"@type": "Person", "name": "kenjaku-dev", "url": "https://github.com/kenjaku-dev"},
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+}
+</script>
 <style>
 /* ============ pymon design tokens ============ */
 :root{
@@ -63,7 +94,8 @@ nav .container{display:flex;align-items:center;justify-content:space-between;hei
 .hero h1{font-size:clamp(40px,5.5vw,64px);font-weight:800;color:var(--title);letter-spacing:-.025em;line-height:1.08;margin-bottom:var(--sp-5);text-wrap:balance}
 .hero h1 .accent{color:var(--green)}
 .hero p{font-size:clamp(18px,2vw,21px);line-height:1.6;color:var(--fg);max-width:65ch;margin:0 auto var(--sp-8)}
-.hero .buttons{display:flex;gap:var(--sp-4);justify-content:center;flex-wrap:wrap}
+.buttons{display:flex;gap:var(--sp-4);justify-content:center;flex-wrap:wrap;align-items:center}
+.buttons img{border-radius:4px;height:20px;width:auto}
 .btn{display:inline-flex;align-items:center;gap:10px;padding:15px 30px;border-radius:10px;font-weight:600;font-size:16px;border:1px solid var(--border);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background-color .15s ease,filter .15s ease}
 .btn:hover{text-decoration:none}
 .btn:active{transform:translateY(0) scale(.99)}
@@ -386,7 +418,10 @@ footer .container{display:flex;justify-content:space-between;align-items:center;
   <div class="container">
     <h2>Ready to monitor?</h2>
     <p>Open source, MIT licensed, Python 3.12+. Star the repo if you find it useful.</p>
-    <a class="btn btn-primary" href="https://github.com/kenjaku-dev/pymon">Star on GitHub</a>
+    <div class="buttons">
+      <a class="btn btn-primary" href="https://github.com/kenjaku-dev/pymon">Star on GitHub</a>
+      <a href="https://github.com/kenjaku-dev/pymon/stargazers"><img src="https://img.shields.io/github/stars/kenjaku-dev/pymon?style=social" alt="GitHub stars on kenjaku-dev/pymon" width="118" height="20"></a>
+    </div>
   </div>
 </section>
 </main>

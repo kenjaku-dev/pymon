@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kenjaku-dev.github.io/pymon/sitemap.xml
